@@ -44,3 +44,48 @@ def fake_results() -> dict:
         "diagnostics": {"divergences": 0, "max_rhat": 1.0, "min_ess": 1000.0, "holdout_mape": 0.1},
         "headline": {"media_uplift_pct": 0.0},
     }
+
+
+@pytest.fixture(scope="session")
+def prepared_data():
+    from mmm.data import load_raw, prepare_features
+    from mmm.model import split_train_test
+
+    df, controls = prepare_features(load_raw())
+    train, test = split_train_test(df)
+    return df, controls, train, test
+
+
+@pytest.fixture(scope="session")
+def smoke_model(prepared_data):
+    from mmm.model import build_mmm, fit_mmm
+
+    _, controls, train, _ = prepared_data
+    mmm = build_mmm(controls)
+    fit_mmm(mmm, train, chains=1, draws=50, tune=50)
+    return mmm
+
+
+@pytest.fixture(scope="session")
+def last_date(prepared_data):
+    return prepared_data[0]["DATE"].max()
+
+
+@pytest.fixture(scope="session")
+def smoke_results(smoke_model, prepared_data):
+    from mmm.diagnostics import Diagnostics
+    from mmm.export import HORIZON_WEEKS, build_results
+    from mmm.model import predict_holdout
+
+    df, _, train, test = prepared_data
+    current = {c: float(df[c].tail(HORIZON_WEEKS).mean()) for c in CHANNELS}
+    diagnostics = Diagnostics(divergences=0, max_rhat=1.0, min_ess=1000.0, holdout_mape=0.1)
+    return build_results(
+        smoke_model,
+        smoke_model.idata,
+        df,
+        train,
+        predict_holdout(smoke_model, test),
+        diagnostics,
+        optimal_plan=current,
+    )
