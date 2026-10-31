@@ -5,6 +5,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
 
@@ -66,8 +67,8 @@ def _money(v: float, _=None) -> str:
 MONEY = FuncFormatter(_money)
 
 
-def _title(ax, title: str, subtitle: str | None = None) -> None:
-    ax.set_title(title, loc="left", fontsize=13, fontweight="bold", color=INK, pad=24)
+def _title(ax, title: str, subtitle: str | None = None, pad: int = 24) -> None:
+    ax.set_title(title, loc="left", fontsize=13, fontweight="bold", color=INK, pad=pad)
     if subtitle:
         ax.text(0, 1.02, subtitle, transform=ax.transAxes, color=INK_2, fontsize=10)
 
@@ -214,16 +215,139 @@ def plot_meridian(results: dict, meridian: dict) -> Figure:
     ax.grid(axis="y", visible=False)
     ax.set_xlabel("Ventas por cada peso invertido (mediana y rango del 90%)")
     ax.legend(loc="lower left", bbox_to_anchor=(0, 1.0), ncols=2)
-    _title(ax, "Retorno por canal: PyMC-Marketing y Meridian")
+    _title(ax, "Retorno por canal: PyMC-Marketing y Meridian", pad=40)
     fig.tight_layout()
     return fig
 
 
-def write_readme_images(results: dict, out_dir: Path, meridian: dict | None = None) -> None:
+VARIABLE_LABELS = {
+    "revenue": "Ventas",
+    **CHANNEL_LABELS,
+    "newsletter": "Newsletter",
+    "competitor_sales_B": "Competencia",
+}
+# Divergente azul a rojo con gris en el medio (paleta validada, modo claro).
+DIVERGING = LinearSegmentedColormap.from_list("azul_rojo", ["#2a78d6", "#f0efec", "#e34948"])
+
+
+def plot_correlation(validation: dict) -> Figure:
+    corr = validation["correlation"]
+    labels = [VARIABLE_LABELS[c] for c in corr["columns"]]
+    matrix = np.array(corr["matrix"])
+    fig, ax = plt.subplots(figsize=(7.5, 6.2))
+    image = ax.imshow(matrix, cmap=DIVERGING, vmin=-1, vmax=1)
+    ax.set_xticks(range(len(labels)), labels, rotation=45, ha="right")
+    ax.set_yticks(range(len(labels)), labels)
+    ax.grid(False)
+    for i in range(len(labels)):
+        for j in range(len(labels)):
+            value = matrix[i, j]
+            color = SURFACE if abs(value) > 0.6 else INK
+            ax.text(
+                j,
+                i,
+                f"{value:.2f}".replace(".", ","),
+                ha="center",
+                va="center",
+                color=color,
+                fontsize=9,
+            )
+    fig.colorbar(image, ax=ax, shrink=0.8, label="Correlación")
+    _title(ax, "Correlación entre las variables", "1 = se mueven juntas, 0 = no se relacionan")
+    fig.tight_layout()
+    return fig
+
+
+def plot_prior_posterior(validation: dict) -> Figure:
+    rows = validation["prior_posterior"]
+    fig, ax = plt.subplots(figsize=(8.5, 4.4))
+    for i, r in enumerate(rows):
+        for key, color, offset, name in (
+            ("prior", MUTED, 0.15, "Antes de ver los datos (prior)"),
+            ("posterior", PALETTE["tv_S"], -0.15, "Después de ver los datos (posterior)"),
+        ):
+            b = r[key]
+            y = i + offset
+            ax.plot([b["p05"], b["p95"]], [y, y], color=color, linewidth=2, solid_capstyle="round")
+            ax.scatter(
+                b["median"],
+                y,
+                s=45,
+                color=color,
+                edgecolor=SURFACE,
+                zorder=3,
+                label=name if i == 0 else None,
+            )
+    ax.set_xscale("log")
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}".replace(".", ",")))
+    ax.set_yticks(range(len(rows)), [CHANNEL_LABELS[r["channel"]] for r in rows])
+    ax.grid(axis="x")
+    ax.grid(axis="y", visible=False)
+    ax.set_xlabel("Ventas por cada peso invertido (escala logarítmica, rango del 90%)")
+    ax.legend(loc="lower left", bbox_to_anchor=(0, 1.0), ncols=2)
+    _title(ax, "Qué aprendió el modelo de los datos", pad=40)
+    fig.tight_layout()
+    return fig
+
+
+def plot_recovery(validation: dict) -> Figure:
+    rows = validation["recovery"]
+    fig, ax = plt.subplots(figsize=(8.5, 4.4))
+    for i, r in enumerate(rows):
+        color = PALETTE["tv_S"]
+        ax.plot([r["p05"], r["p95"]], [i, i], color=color, linewidth=2, solid_capstyle="round")
+        ax.scatter(
+            r["median"],
+            i,
+            s=50,
+            color=color,
+            edgecolor=SURFACE,
+            zorder=3,
+            label="Estimado por el modelo" if i == 0 else None,
+        )
+        ax.scatter(
+            r["true"],
+            i,
+            s=70,
+            marker="D",
+            color=INK,
+            zorder=4,
+            label="Valor real (conocido)" if i == 0 else None,
+        )
+        ax.text(
+            max(r["p95"], r["true"]),
+            i,
+            f"  cubierto {r['covered']} de {r['n']}",
+            va="center",
+            color=INK_2,
+            fontsize=9,
+        )
+    ax.set_yticks(range(len(rows)), [CHANNEL_LABELS[r["channel"]] for r in rows])
+    ax.grid(axis="x")
+    ax.grid(axis="y", visible=False)
+    ax.set_xlabel("Ventas por cada peso invertido (promedio de las corridas, rango del 90%)")
+    ax.legend(loc="lower left", bbox_to_anchor=(0, 1.0), ncols=2)
+    _title(ax, "Recuperación de parámetros con ventas inventadas", pad=40)
+    fig.tight_layout()
+    return fig
+
+
+def write_readme_images(
+    results: dict,
+    out_dir: Path,
+    meridian: dict | None = None,
+    validation: dict | None = None,
+) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     figures = [("roi.png", plot_roi(results)), ("aportes.png", plot_contributions(results))]
     if meridian is not None:
         figures.append(("meridian.png", plot_meridian(results, meridian)))
+    if validation is not None:
+        figures += [
+            ("correlaciones.png", plot_correlation(validation)),
+            ("prior_posterior.png", plot_prior_posterior(validation)),
+            ("recuperacion.png", plot_recovery(validation)),
+        ]
     for name, fig in figures:
         fig.savefig(out_dir / name, dpi=160)
         plt.close(fig)

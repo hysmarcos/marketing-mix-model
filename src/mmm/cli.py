@@ -24,6 +24,7 @@ DIAGNOSTICS_PATH = ARTIFACTS / "diagnostics.json"
 RESULTS_PATH = ROOT / "site" / "data" / "resultados.json"
 CASES_PATH = ROOT / "tests" / "fixtures" / "simulator_cases.json"
 IMAGES_DIR = ROOT / "docs" / "img"
+VALIDATION_PATH = ROOT / "site" / "data" / "validacion.json"
 
 
 def fit(args: argparse.Namespace) -> int:
@@ -81,9 +82,41 @@ def export(_: argparse.Namespace) -> int:
     meridian = None
     if MERIDIAN_PATH.exists():
         meridian = json.loads(MERIDIAN_PATH.read_text(encoding="utf-8"))
-    plots.write_readme_images(results, IMAGES_DIR, meridian=meridian)
+    validation = None
+    if VALIDATION_PATH.exists():
+        validation = json.loads(VALIDATION_PATH.read_text(encoding="utf-8"))
+    plots.write_readme_images(results, IMAGES_DIR, meridian=meridian, validation=validation)
     print(f"Resultados en {RESULTS_PATH}")
     print(f"Mejora con el reparto óptimo: {results['headline']['media_uplift_pct']:.1f}%")
+    return 0
+
+
+def validate(args: argparse.Namespace) -> int:
+    from mmm import validation
+    from mmm.export import _write_json
+
+    if not MODEL_PATH.exists():
+        print("Falta artifacts/model.nc. Ejecutá primero: uv run mmm fit", file=sys.stderr)
+        return 1
+    df, controls = prepare_features(load_raw())
+    train, _ = split_train_test(df)
+    mmm = MMM.load(str(MODEL_PATH))
+    runs = []
+    for seed in range(1, args.runs + 1):
+        print(f"Recuperación de parámetros: corrida {seed} de {args.runs}")
+        runs.append(validation.recovery_run(mmm, train, controls, seed=seed))
+    results = {
+        "correlation": validation.correlation_summary(df),
+        "prior_posterior": validation.prior_posterior_roi(mmm, train),
+        "recovery": validation.summarize_recovery(runs),
+    }
+    _write_json(results, VALIDATION_PATH)
+    print(f"Verificación en {VALIDATION_PATH}")
+    for r in results["recovery"]:
+        print(
+            f"{r['channel']}: verdad {r['true']:.2f}, estimado {r['median']:.2f}, "
+            f"cubierto {r['covered']}/{r['n']}"
+        )
     return 0
 
 
@@ -101,6 +134,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     fit_parser.set_defaults(func=fit)
     sub.add_parser("export", help="Exporta resultados para la página").set_defaults(func=export)
+    validate_parser = sub.add_parser("validate", help="Verifica el modelo con datos inventados")
+    validate_parser.add_argument("--runs", type=int, default=3)
+    validate_parser.set_defaults(func=validate)
     args = parser.parse_args(argv)
     return args.func(args)
 

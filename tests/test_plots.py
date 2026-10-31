@@ -49,3 +49,37 @@ def test_plot_meridian_returns_figure(fake_results):
 def test_readme_images_include_meridian_when_given(fake_results, tmp_path):
     plots.write_readme_images(fake_results, tmp_path, meridian=fake_meridian(fake_results))
     assert (tmp_path / "meridian.png").stat().st_size > 0
+
+
+def fake_validation(results):
+    cols = ["revenue", *CHANNELS, "newsletter", "competitor_sales_B"]
+    n = len(cols)
+    matrix = [[1.0 if i == j else 0.1 for j in range(n)] for i in range(n)]
+    pp = [
+        {
+            "channel": c,
+            "prior": {"median": 30, "p05": 2, "p95": 900},
+            "posterior": {"median": 5, "p05": 3, "p95": 7},
+        }
+        for c in CHANNELS
+    ]
+    rec = [
+        {"channel": c, "true": 5.0, "median": 5.5, "p05": 3.0, "p95": 8.0, "covered": 9, "n": 10}
+        for c in CHANNELS
+    ]
+    return {
+        "correlation": {"columns": cols, "matrix": matrix, "zero_weeks": {}, "vif": {}},
+        "prior_posterior": pp,
+        "recovery": rec,
+    }
+
+
+@pytest.mark.parametrize("name", ["plot_correlation", "plot_prior_posterior", "plot_recovery"])
+def test_validation_plots_return_figures(fake_results, name):
+    assert isinstance(getattr(plots, name)(fake_validation(fake_results)), Figure)
+
+
+def test_readme_images_include_validation_when_given(fake_results, tmp_path):
+    plots.write_readme_images(fake_results, tmp_path, validation=fake_validation(fake_results))
+    for name in ("correlaciones.png", "prior_posterior.png", "recuperacion.png"):
+        assert (tmp_path / name).stat().st_size > 0
