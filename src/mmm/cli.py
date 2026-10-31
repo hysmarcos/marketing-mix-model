@@ -9,6 +9,7 @@ import xarray as xr
 from pymc_marketing.mmm import MMM
 
 from mmm import plots
+from mmm.calibration import CalibrationError, load_lift_tests
 from mmm.data import load_raw, prepare_features
 from mmm.diagnostics import Diagnostics, ModelQualityError, assert_quality, compute_diagnostics
 from mmm.export import build_results, write_results, write_simulator_cases
@@ -25,10 +26,24 @@ IMAGES_DIR = ROOT / "docs" / "img"
 
 
 def fit(args: argparse.Namespace) -> int:
+    lift_tests = None
+    if args.lift_tests:
+        try:
+            lift_tests = load_lift_tests(Path(args.lift_tests))
+        except CalibrationError as error:
+            print(f"No se puede calibrar: {error}", file=sys.stderr)
+            return 1
     df, controls = prepare_features(load_raw())
     train, test = split_train_test(df)
     mmm = build_mmm(controls)
-    idata = fit_mmm(mmm, train, draws=args.draws, tune=args.tune, target_accept=args.target_accept)
+    idata = fit_mmm(
+        mmm,
+        train,
+        draws=args.draws,
+        tune=args.tune,
+        target_accept=args.target_accept,
+        lift_tests=lift_tests,
+    )
     holdout = predict_holdout(mmm, test)
     free_vars = [rv.name for rv in mmm.model.free_RVs]
     diagnostics = compute_diagnostics(
@@ -75,6 +90,11 @@ def main(argv: list[str] | None = None) -> int:
     fit_parser.add_argument("--draws", type=int, default=2000)
     fit_parser.add_argument("--tune", type=int, default=2000)
     fit_parser.add_argument("--target-accept", type=float, default=0.95)
+    fit_parser.add_argument(
+        "--lift-tests",
+        metavar="CSV",
+        help="Calibra el modelo con experimentos (formato: data/lift_tests_plantilla.csv)",
+    )
     fit_parser.set_defaults(func=fit)
     sub.add_parser("export", help="Exporta resultados para la página").set_defaults(func=export)
     args = parser.parse_args(argv)

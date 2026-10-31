@@ -42,7 +42,12 @@ def fit_mmm(
     tune: int = 1000,
     sampler: str = "nutpie",
     target_accept: float = 0.9,
+    lift_tests: pd.DataFrame | None = None,
 ) -> xr.DataTree:
+    if lift_tests is not None:
+        # PyMC-Marketing pide el modelo armado antes de agregar los experimentos.
+        mmm.build_model(model_inputs(mmm, train), train[TARGET])
+        mmm.add_lift_test_measurements(lift_tests)
     return mmm.fit(
         model_inputs(mmm, train),
         train[TARGET],
