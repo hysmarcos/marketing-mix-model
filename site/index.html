@@ -6,8 +6,9 @@
     <title>Marketing Mix Model</title>
     <meta
       name="description"
-      content="Cuánto vende cada canal de marketing y cómo repartir el presupuesto. Modelo bayesiano con PyMC-Marketing y simulador de presupuesto."
+      content="Cuánto vende cada canal de marketing y cómo repartir el presupuesto. Modelo bayesiano con PyMC-Marketing, verificado con cinco pruebas, y simulador de presupuesto."
     />
+    <link rel="icon" href="data:," />
     <link rel="stylesheet" href="css/styles.css" />
     <script>
       // Aplica el tema guardado antes de pintar, para evitar un parpadeo.
@@ -20,181 +21,237 @@
   </head>
   <body>
     <header class="topbar">
-      <span class="kicker">Marketing Mix Model · PyMC-Marketing</span>
-      <button id="theme-toggle" class="ghost" type="button" aria-label="Cambiar entre modo claro y oscuro">
-        Modo oscuro
-      </button>
+      <a class="brand" href="https://github.com/hysmarcos/marketing-mix-model">Marketing Mix Model</a>
+      <nav class="topnav" aria-label="Secciones">
+        <a href="#simulador">Simulador</a>
+        <a href="#evidencia">Evidencia</a>
+        <a href="#metodo">Método</a>
+      </nav>
+      <button id="theme-toggle" class="ghost" type="button">Modo oscuro</button>
     </header>
 
     <main>
-      <p class="notice" role="note">
-        Datos simulados por Robyn (Meta). No son datos de una empresa real.
-      </p>
-
-      <section class="intro">
-        <h1>¿Cómo reparto el presupuesto del próximo trimestre?</h1>
-        <p class="answer" id="answer">Cargando resultados…</p>
-        <div class="hero">
-          <span class="hero-value" id="hero-value">—</span>
-          <span class="hero-label">más ventas de medios con el mismo presupuesto semanal</span>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="notice reveal" style="--i: 0">
+            Datos simulados por Robyn (Meta). No son datos de una empresa real.
+          </p>
+          <h1 class="reveal" style="--i: 1">¿Cómo reparto el presupuesto del próximo trimestre?</h1>
+          <p class="answer reveal" id="answer" style="--i: 2">Cargando resultados…</p>
         </div>
-        <p class="footnote">
-          Es la estimación del modelo. Las pruebas de verificación muestran que el modelo tiende a
-          sobreestimar los canales con poca inversión, así que la mejora real probablemente sea
-          menor.
-          <a href="https://github.com/hysmarcos/marketing-mix-model#5-se-puede-confiar-en-el-resultado">Ver las pruebas</a>.
-        </p>
+
+        <aside class="hero-result reveal" style="--i: 3" aria-labelledby="hero-label">
+          <p class="result-value" id="hero-value">&nbsp;</p>
+          <p class="result-label" id="hero-label">
+            más ventas de medios con el mismo presupuesto semanal
+          </p>
+          <dl class="result-facts">
+            <div>
+              <dt>Rango del 90%</dt>
+              <dd id="hero-range">&nbsp;</dd>
+            </div>
+            <div>
+              <dt>Probabilidad de mejora</dt>
+              <dd id="hero-prob">&nbsp;</dd>
+            </div>
+            <div id="hero-corrected-row">
+              <dt>Corregido por sesgo</dt>
+              <dd id="hero-corrected">&nbsp;</dd>
+            </div>
+          </dl>
+          <a
+            class="result-link"
+            href="https://github.com/hysmarcos/marketing-mix-model#5-se-puede-confiar-en-el-resultado"
+            >Cómo lo verifiqué</a
+          >
+        </aside>
       </section>
 
-      <section id="simulador" aria-labelledby="sim-title">
-        <h2 id="sim-title">Simulador de presupuesto</h2>
-        <p class="lead">
-          Mové las barras para elegir la inversión semanal de cada canal. El modelo predice las
-          ventas de las próximas 13 semanas.
-        </p>
+      <section id="simulador" class="block" aria-labelledby="sim-title">
+        <div class="block-head">
+          <h2 id="sim-title">Simulador de presupuesto</h2>
+          <p>
+            Mové la inversión semanal de cada canal. El modelo predice las ventas de las próximas
+            13 semanas.
+          </p>
+        </div>
+
         <div class="sim">
           <div class="sim-controls">
-            <div class="sim-total">
-              <span>Presupuesto semanal total</span>
-              <strong id="sim-total">—</strong>
+            <div class="sim-toolbar">
+              <div class="segmented" role="group" aria-label="Planes guardados">
+                <span class="segmented-indicator" aria-hidden="true"></span>
+                <button type="button" id="btn-current" aria-pressed="true">Plan actual</button>
+                <button type="button" id="btn-optimal" aria-pressed="false">Reparto óptimo</button>
+              </div>
+              <p class="sim-total">
+                <span>Total semanal</span>
+                <strong id="sim-total">&nbsp;</strong>
+              </p>
             </div>
-            <div id="sliders"></div>
-            <div class="sim-buttons">
-              <button type="button" id="btn-current">Plan actual</button>
-              <button type="button" id="btn-optimal" class="primary">Reparto óptimo</button>
-            </div>
+            <div id="sliders" class="sliders"></div>
+            <p class="sim-warn" id="sim-warn" aria-live="polite"></p>
           </div>
+
           <div class="sim-results" aria-live="polite">
-            <div class="tile">
-              <span class="tile-label">Ventas de medios en 13 semanas</span>
-              <span class="tile-value" id="res-media">—</span>
-              <span class="tile-range" id="res-media-range"></span>
+            <div class="metric">
+              <span class="metric-label">Ventas de medios en 13 semanas</span>
+              <span class="metric-value" id="res-media">&nbsp;</span>
+              <span class="metric-range" id="res-media-range">&nbsp;</span>
             </div>
-            <div class="tile">
-              <span class="tile-label">Ventas totales en 13 semanas</span>
-              <span class="tile-value" id="res-total">—</span>
-              <span class="tile-range" id="res-total-range"></span>
+            <div class="metric">
+              <span class="metric-label">Ventas totales en 13 semanas</span>
+              <span class="metric-value" id="res-total">&nbsp;</span>
+              <span class="metric-range" id="res-total-range">&nbsp;</span>
             </div>
-            <div class="tile">
-              <span class="tile-label">Diferencia contra el plan actual</span>
-              <span class="tile-value" id="res-delta">—</span>
-              <span class="tile-range">en ventas de medios (mediana)</span>
+            <div class="metric">
+              <span class="metric-label">Diferencia contra el plan actual</span>
+              <span class="metric-value" id="res-delta">&nbsp;</span>
+              <span class="metric-range" id="res-delta-note">en ventas de medios (mediana)</span>
             </div>
           </div>
         </div>
         <p class="footnote">
           El rango muestra dónde cae el 90% de las predicciones del modelo. El simulador supone la
-          misma inversión todas las semanas. También suma el efecto que sigue de la inversión real
-          de las últimas 7 semanas.
+          misma inversión todas las semanas y suma el efecto que sigue de la inversión real de las
+          últimas 7 semanas. La marca en cada barra es la inversión semanal más alta vista en los
+          datos.
         </p>
       </section>
 
-      <section aria-labelledby="ev-title">
-        <h2 id="ev-title">La evidencia</h2>
+      <section id="evidencia" class="block" aria-labelledby="ev-title">
+        <div class="block-head">
+          <h2 id="ev-title">La evidencia</h2>
+          <p>Cinco vistas del mismo modelo. Cada una tiene su tabla con los números.</p>
+        </div>
 
-        <figure class="chart" id="chart-roi">
-          <figcaption>
-            <h3>Retorno por canal</h3>
-            <p>
-              Ventas que genera cada peso invertido, con el rango del 90%. A la derecha de la línea
-              en 1, el canal recupera lo invertido.
-            </p>
-          </figcaption>
-          <div class="plot"></div>
-          <button type="button" class="ghost table-toggle">Ver tabla</button>
-          <div class="table-wrap" hidden></div>
-        </figure>
+        <div class="tabs-wrap">
+          <div class="tabs" role="tablist" aria-label="Gráficos de evidencia">
+            <span class="tab-indicator" aria-hidden="true"></span>
+            <button type="button" role="tab" id="tab-roi" aria-controls="chart-roi" aria-selected="true">Retorno</button>
+            <button type="button" role="tab" id="tab-meridian" aria-controls="chart-meridian" aria-selected="false" tabindex="-1">Meridian</button>
+            <button type="button" role="tab" id="tab-contrib" aria-controls="chart-contrib" aria-selected="false" tabindex="-1">Aporte mensual</button>
+            <button type="button" role="tab" id="tab-curves" aria-controls="chart-curves" aria-selected="false" tabindex="-1">Saturación</button>
+            <button type="button" role="tab" id="tab-holdout" aria-controls="chart-holdout" aria-selected="false" tabindex="-1">Prueba</button>
+          </div>
+        </div>
 
-        <figure class="chart" id="chart-meridian" hidden>
-          <figcaption>
-            <h3>Comparación con Meridian, el MMM de Google</h3>
-            <p id="meridian-sub">
-              Retorno por canal según los dos modelos, con el rango del 90%. Los dos usan los mismos
-              datos, los mismos controles y las mismas 12 semanas de prueba. Donde los rangos se
-              superponen, los modelos coinciden.
-            </p>
-          </figcaption>
-          <div class="legend"></div>
-          <div class="plot"></div>
-          <button type="button" class="ghost table-toggle">Ver tabla</button>
-          <div class="table-wrap" hidden></div>
-        </figure>
+        <div class="panels">
+          <figure class="panel" id="chart-roi" role="tabpanel" aria-labelledby="tab-roi" tabindex="0">
+            <figcaption>
+              <h3>Retorno por canal</h3>
+              <p>
+                Ventas que genera cada peso invertido, con el rango del 90%. A la derecha de la
+                línea en 1, el canal recupera lo invertido.
+              </p>
+            </figcaption>
+            <div class="plot"></div>
+            <div class="table-block">
+              <button type="button" class="ghost table-toggle" aria-expanded="false">Ver tabla</button>
+              <div class="table-wrap" inert><div class="table-inner"></div></div>
+            </div>
+          </figure>
 
-        <figure class="chart" id="chart-contrib">
-          <figcaption>
-            <h3>Aporte mensual de cada canal</h3>
-            <p id="contrib-sub">Ventas que el modelo atribuye a cada canal, sumadas por mes.</p>
-          </figcaption>
-          <div class="legend"></div>
-          <div class="plot"></div>
-          <button type="button" class="ghost table-toggle">Ver tabla</button>
-          <div class="table-wrap" hidden></div>
-        </figure>
+          <figure class="panel" id="chart-meridian" role="tabpanel" aria-labelledby="tab-meridian" tabindex="0" hidden>
+            <figcaption>
+              <h3>Comparación con Meridian, el MMM de Google</h3>
+              <p id="meridian-sub">
+                Retorno por canal según los dos modelos, con los mismos datos, controles y semanas
+                de prueba. Donde los rangos se superponen, los modelos coinciden.
+              </p>
+            </figcaption>
+            <div class="legend"></div>
+            <div class="plot"></div>
+            <div class="table-block">
+              <button type="button" class="ghost table-toggle" aria-expanded="false">Ver tabla</button>
+              <div class="table-wrap" inert><div class="table-inner"></div></div>
+            </div>
+          </figure>
 
-        <figure class="chart" id="chart-curves">
-          <figcaption>
-            <h3>Curvas de saturación</h3>
-            <p>
-              Ventas por semana que genera cada canal según cuánto se invierte. Cuando la curva se
-              aplana, poner más plata casi no suma. El punto marca el plan actual.
-            </p>
-          </figcaption>
-          <div class="multiples"></div>
-          <button type="button" class="ghost table-toggle">Ver tabla</button>
-          <div class="table-wrap" hidden></div>
-        </figure>
+          <figure class="panel" id="chart-contrib" role="tabpanel" aria-labelledby="tab-contrib" tabindex="0" hidden>
+            <figcaption>
+              <h3>Aporte mensual de cada canal</h3>
+              <p>Ventas que el modelo atribuye a cada canal, sumadas por mes.</p>
+            </figcaption>
+            <div class="legend"></div>
+            <div class="plot"></div>
+            <div class="table-block">
+              <button type="button" class="ghost table-toggle" aria-expanded="false">Ver tabla</button>
+              <div class="table-wrap" inert><div class="table-inner"></div></div>
+            </div>
+          </figure>
 
-        <figure class="chart" id="chart-holdout">
-          <figcaption>
-            <h3>Prueba del modelo: ventas reales contra predichas</h3>
-            <p id="holdout-sub">
-              El modelo no vio estas 12 semanas al entrenar. La banda muestra el rango del 90%.
-            </p>
-          </figcaption>
-          <div class="legend"></div>
-          <div class="plot"></div>
-          <button type="button" class="ghost table-toggle">Ver tabla</button>
-          <div class="table-wrap" hidden></div>
-        </figure>
+          <figure class="panel" id="chart-curves" role="tabpanel" aria-labelledby="tab-curves" tabindex="0" hidden>
+            <figcaption>
+              <h3>Curvas de saturación</h3>
+              <p>
+                Ventas por semana según cuánto se invierte. Cuando la curva se aplana, poner más
+                plata casi no suma. El punto marca el plan actual.
+              </p>
+            </figcaption>
+            <div class="multiples"></div>
+            <div class="table-block">
+              <button type="button" class="ghost table-toggle" aria-expanded="false">Ver tabla</button>
+              <div class="table-wrap" inert><div class="table-inner"></div></div>
+            </div>
+          </figure>
+
+          <figure class="panel" id="chart-holdout" role="tabpanel" aria-labelledby="tab-holdout" tabindex="0" hidden>
+            <figcaption>
+              <h3>Ventas reales contra predichas</h3>
+              <p id="holdout-sub">
+                El modelo no vio estas 12 semanas al entrenar. La banda muestra el rango del 90%.
+              </p>
+            </figcaption>
+            <div class="legend"></div>
+            <div class="plot"></div>
+            <div class="table-block">
+              <button type="button" class="ghost table-toggle" aria-expanded="false">Ver tabla</button>
+              <div class="table-wrap" inert><div class="table-inner"></div></div>
+            </div>
+          </figure>
+        </div>
       </section>
 
-      <section aria-labelledby="how-title">
-        <h2 id="how-title">Cómo funciona el modelo</h2>
-        <p>
-          Un Marketing Mix Model estima cuántas ventas genera cada canal a partir de la historia de
-          inversión y ventas. Este modelo usa 208 semanas de datos y 5 canales pagos: TV, vía
-          pública, prensa, Facebook y búsqueda.
-        </p>
-        <ul>
-          <li>
-            Adstock: el efecto de un aviso sigue unas semanas después de publicarlo.
-          </li>
-          <li>Saturación: cada peso extra en un canal rinde menos que el anterior.</li>
-          <li>
-            Controles: newsletter, ventas de la competencia, eventos, feriados de Alemania,
-            estacionalidad anual y tendencia.
-          </li>
-        </ul>
-        <p>
-          El modelo es bayesiano: no da un solo número, da un rango de valores posibles con su
-          probabilidad. Las últimas 12 semanas quedaron fuera del entrenamiento para probar las
-          predicciones.
-        </p>
-        <h3>Controles de calidad</h3>
-        <table class="diag">
-          <thead>
-            <tr><th>Control</th><th>Resultado</th><th>Condición</th></tr>
-          </thead>
-          <tbody id="diag-body"></tbody>
-        </table>
+      <section id="metodo" class="block method" aria-labelledby="how-title">
+        <div class="method-copy">
+          <h2 id="how-title">Cómo funciona el modelo</h2>
+          <p>
+            Un Marketing Mix Model estima cuántas ventas genera cada canal a partir de la historia
+            de inversión y ventas. Este modelo usa 208 semanas y 5 canales pagos.
+          </p>
+          <ul>
+            <li>Adstock: el efecto de un aviso sigue unas semanas después de publicarlo.</li>
+            <li>Saturación: cada peso extra en un canal rinde menos que el anterior.</li>
+            <li>
+              Controles: newsletter, ventas de la competencia, eventos, feriados de Alemania,
+              estacionalidad anual y tendencia.
+            </li>
+          </ul>
+          <p>
+            El modelo es bayesiano: da un rango de valores posibles con su probabilidad. Las
+            últimas 12 semanas quedaron fuera del entrenamiento para probar las predicciones.
+          </p>
+        </div>
+
+        <div class="checks" aria-labelledby="checks-title">
+          <h3 id="checks-title">Controles de calidad</h3>
+          <dl id="diag-list" class="check-list"></dl>
+          <a
+            class="result-link"
+            href="https://github.com/hysmarcos/marketing-mix-model#5-se-puede-confiar-en-el-resultado"
+            >Ver las cinco pruebas</a
+          >
+        </div>
       </section>
     </main>
 
     <footer>
       <p>
-        Código, notebooks y tests en
+        Código y tests en
         <a href="https://github.com/hysmarcos/marketing-mix-model">github.com/hysmarcos/marketing-mix-model</a>.
-        Datos: demo de <a href="https://github.com/facebookexperimental/Robyn">Robyn</a> (licencia MIT).
+        <a href="https://github.com/hysmarcos/marketing-mix-model/tree/main/notebooks">Notebooks</a>.
+        Datos: demo de <a href="https://facebookexperimental.github.io/Robyn/">Robyn</a> (licencia MIT).
       </p>
     </footer>
   </body>

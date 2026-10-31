@@ -24,6 +24,7 @@ export function roiChart(results, theme, width) {
     .sort((a, b) => b.median - a.median)
     .map((r) => ({ ...r, label: results.channel_labels[r.channel] }));
   return Plot.plot({
+    ariaLabel: "Retorno por canal con su rango del 90%",
     width,
     height: 56 + data.length * 44,
     marginLeft: 96,
@@ -115,6 +116,7 @@ Rango del 90%: ${num1(d.p05)} a ${num1(d.p95)}`,
     );
   }
   return Plot.plot({
+    ariaLabel: "Retorno por canal según PyMC-Marketing y Meridian",
     width,
     height: 64 + order.length * 52,
     marginLeft: 96,
@@ -132,6 +134,7 @@ export function contributionChart(results, theme, width) {
     channels.map((c) => ({ month: m.month, series: c, value: m[c] })),
   );
   return Plot.plot({
+    ariaLabel: "Aporte mensual de cada canal a las ventas",
     width,
     height: 320,
     marginLeft: 56,
@@ -183,6 +186,7 @@ export function curveCharts(results, theme, width) {
       ...band(weeklyContribution(spend, draws.lam[c], draws.beta[c], scales.channel[c], scales.target)),
     };
     const svg = Plot.plot({
+      ariaLabel: `Curva de saturación de ${labels[c]}`,
       width,
       height: 170,
       marginLeft: 48,
@@ -221,6 +225,7 @@ export function curveCharts(results, theme, width) {
 export function holdoutChart(results, theme, width) {
   const rows = results.holdout.map((d) => ({ ...d, date: new Date(d.date) }));
   return Plot.plot({
+    ariaLabel: "Ventas reales contra predichas en las 12 semanas de prueba",
     width,
     height: 300,
     marginLeft: 56,
