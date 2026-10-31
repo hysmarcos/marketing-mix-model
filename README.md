@@ -1,28 +1,52 @@
-# ¿Dónde rinde cada peso de publicidad?
+<p align="center">
+  <b>Español</b> · <a href="README.en.md">English</a>
+</p>
 
-[![CI](https://github.com/hysmarcos/marketing-mix-model/actions/workflows/ci.yml/badge.svg)](https://github.com/hysmarcos/marketing-mix-model/actions/workflows/ci.yml)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/es/dark/banner.svg">
+  <img alt="¿Dónde rinde cada peso de publicidad? +35% de ventas de medios con el mismo presupuesto, 96% de probabilidad de mejora, 2,9% de error en semanas de prueba, 49 de 50 efectos conocidos recuperados." src="docs/img/es/light/banner.svg" width="100%">
+</picture>
 
-> In English: a Bayesian Marketing Mix Model (PyMC-Marketing) on Meta's Robyn demo data that estimates the sales each ad channel drives and recommends a budget split. The project then tries to prove itself wrong: held-out weeks, prior-vs-posterior checks, parameter recovery on simulated data and a side-by-side comparison with Google's Meridian. A static page with an in-browser budget simulator shows the results.
+<p align="center">
+  <a href="https://hysmarcos.github.io/marketing-mix-model/"><img alt="Ver la demo en vivo" src="https://img.shields.io/badge/demo-simulador_en_vivo-2a78d6?style=for-the-badge"></a>
+</p>
 
-Una empresa invierte en TV, vía pública, prensa, Facebook y búsqueda. Las ventas suben y bajan, pero nadie sabe qué parte de las ventas genera cada canal. Este proyecto responde esa pregunta con un modelo estadístico. Después pone a prueba su propia respuesta, para saber cuánto se puede confiar en ella.
+<p align="center">
+  <a href="https://github.com/hysmarcos/marketing-mix-model/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/hysmarcos/marketing-mix-model/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Python 3.13" src="https://img.shields.io/badge/python-3.13-2a78d6?logo=python&logoColor=white">
+  <img alt="PyMC-Marketing 1.3.0" src="https://img.shields.io/badge/PyMC--Marketing-1.3.0-2a78d6">
+  <img alt="Meridian 2.1.0" src="https://img.shields.io/badge/Meridian-2.1.0-2a78d6">
+  <img alt="Licencia MIT" src="https://img.shields.io/badge/licencia-MIT-2a78d6">
+</p>
 
-Los datos son simulados por Robyn, la herramienta de MMM de Meta. No son datos de una empresa real.
+Una empresa invierte en TV, vía pública, prensa, Facebook y búsqueda. Las ventas suben y bajan, pero nadie sabe qué parte de las ventas genera cada canal. Este proyecto responde esa pregunta con un modelo estadístico. Después pone a prueba su propia respuesta con cinco pruebas independientes, para saber cuánto se puede confiar en ella.
+
+> [!NOTE]
+> Los datos son simulados por [Robyn](https://facebookexperimental.github.io/Robyn/), la herramienta de MMM de Meta. No son datos de una empresa real.
 
 ## En 30 segundos
 
 La pregunta: ¿cómo reparto el presupuesto de marketing del próximo trimestre entre los canales?
 
-La respuesta: pasar inversión de vía pública, TV y búsqueda a prensa y Facebook. Con el mismo presupuesto semanal, el modelo estima un 35% más de ventas generadas por los medios.
+> [!TIP]
+> Recomendación: pasar inversión de vía pública, TV y búsqueda a prensa y Facebook, con el mismo presupuesto semanal. Las ventas generadas por los medios suben un 35% según el modelo, y un 32% si se corrige el sesgo que midieron las pruebas.
 
-Qué tan seguros estamos:
+| Conclusión | Confianza | Evidencia |
+|---|---|---|
+| Vía pública no recupera lo invertido | Alta | Retorno de 0,5 por peso. Este modelo y Meridian coinciden. |
+| TV rinde unos 5 pesos por peso invertido | Alta | Los dos modelos coinciden. La prueba de recuperación lo encuentra casi exacto. |
+| El nuevo reparto vende más que el actual | Alta | El 96% de las muestras del modelo dan una mejora. |
+| La mejora es de alrededor de un 32% a 35% | Media | El rango del 90% va de +3% a +78%. |
+| Prensa, Facebook y búsqueda rinden más que TV | Media | Los rangos son anchos y Meridian da valores más bajos. |
 
-1. Firme: vía pública no recupera lo invertido. Lo dicen este modelo y Meridian, el modelo de Google.
-2. Firme: TV rinde unos 5 pesos por cada peso invertido. Los dos modelos coinciden.
-3. Incierto: cuánto rinden prensa, Facebook y búsqueda. Las pruebas muestran que este modelo tiende a sobreestimarlos, así que el 35% es probablemente un techo.
+<a href="https://hysmarcos.github.io/marketing-mix-model/">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/img/simulador-dark.png">
+    <img alt="Simulador de presupuesto con el reparto óptimo aplicado" src="docs/img/simulador.png">
+  </picture>
+</a>
 
-Página con los resultados y un simulador para probar otros repartos: https://hysmarcos.github.io/marketing-mix-model/
-
-[![Simulador de presupuesto con el reparto óptimo aplicado](docs/img/simulador.png)](https://hysmarcos.github.io/marketing-mix-model/)
+<sub>El simulador de la página: mové la inversión de cada canal y mirá cuánto vende el plan.</sub>
 
 ## Qué vas a encontrar
 
@@ -52,7 +76,10 @@ El dataset es el demo de Robyn: 208 semanas, desde noviembre de 2015. Tiene las 
 
 Antes de entrenar un modelo, conviene mirar cómo se relacionan las variables. La [correlación](#glosario) mide si dos variables suben y bajan juntas.
 
-![Correlación entre las variables](docs/img/correlaciones.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/es/dark/correlation.png">
+  <img alt="Matriz de correlación entre ventas, canales y controles" src="docs/img/es/light/correlation.png">
+</picture>
 
 El gráfico muestra tres cosas que condicionan todo el análisis:
 
@@ -80,7 +107,12 @@ flowchart LR
     ruido["Ruido: lo que el modelo no explica"] -.-> ventas
 ```
 
-Cada caja tiene parámetros que el modelo estima a partir de los datos. Un [prior](#glosario) es lo que el modelo supone sobre un parámetro antes de ver los datos. El modelo usa los priors por defecto de PyMC-Marketing 1.3.0:
+Cada caja tiene parámetros que el modelo estima a partir de los datos. Las últimas 12 semanas quedan fuera del entrenamiento, para probar el modelo después.
+
+<details>
+<summary>Ver los priors y el escalado del modelo</summary>
+
+Un [prior](#glosario) es lo que el modelo supone sobre un parámetro antes de ver los datos. El modelo usa los priors por defecto de PyMC-Marketing 1.3.0:
 
 | Parámetro | Prior |
 |---|---|
@@ -92,36 +124,52 @@ Cada caja tiene parámetros que el modelo estima a partir de los datos. Un [prio
 | Estacionalidad (`gamma_fourier`) | Laplace(0, 1) |
 | Ruido (`y_sigma`) | HalfNormal(2) |
 
-PyMC-Marketing escala las ventas y la inversión antes de entrenar. La newsletter y las ventas de la competencia se escalan en `src/mmm/data.py`, porque PyMC-Marketing no escala los controles. Las últimas 12 semanas quedan fuera del entrenamiento, para probar el modelo después.
+PyMC-Marketing escala las ventas y la inversión antes de entrenar. La newsletter y las ventas de la competencia se escalan en `src/mmm/data.py`, porque PyMC-Marketing no escala los controles.
+
+</details>
 
 ## 4. Resultados
 
 El [retorno](#glosario) (ROI) de un canal es cuántas ventas genera cada peso invertido en él. A la derecha de la línea en 1, el canal recupera lo invertido.
 
-![Retorno por canal con su rango del 90%](docs/img/roi.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/es/dark/roi.png">
+  <img alt="Retorno por canal con su rango del 90%" src="docs/img/es/light/roi.png">
+</picture>
 
 Vía pública es el único canal que no recupera lo invertido: 0,5 por cada peso. Facebook tiene la mediana más alta (12,3), pero también el rango más ancho, porque tiene poca inversión en los datos.
 
 Con estos retornos, el reparto óptimo cambia así:
 
-| Canal | Inversión semanal actual | Inversión semanal óptima |
-|---|---:|---:|
-| TV | $ 9.474 | $ 6.326 |
-| Vía pública | $ 9.649 | $ 0 |
-| Prensa | $ 5.938 | $ 13.753 |
-| Facebook | $ 3.510 | $ 12.195 |
-| Búsqueda | $ 12.542 | $ 8.838 |
-| Total | $ 41.112 | $ 41.112 |
+| Canal | Inversión semanal actual | Inversión semanal óptima | Cambio |
+|---|---:|---:|---:|
+| TV | $ 9.474 | $ 6.326 | −33% |
+| Vía pública | $ 9.649 | $ 0 | −100% |
+| Prensa | $ 5.938 | $ 13.753 | +132% |
+| Facebook | $ 3.510 | $ 12.195 | +247% |
+| Búsqueda | $ 12.542 | $ 8.838 | −30% |
+| Total | $ 41.112 | $ 41.112 | 0% |
 
 El plan actual es el promedio de las últimas 13 semanas del dataset. Para el reparto óptimo, el algoritmo SLSQP de scipy busca el reparto con más ventas de medios en el simulador, con el mismo total semanal. Cada canal puede recibir hasta 1,5 veces su inversión semanal más alta en los datos.
 
 El aporte de cada canal cambia mes a mes, según cuánto se invirtió:
 
-![Aporte mensual de cada canal a las ventas](docs/img/aportes.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/es/dark/contributions.png">
+  <img alt="Aporte mensual de cada canal a las ventas" src="docs/img/es/light/contributions.png">
+</picture>
 
 ## 5. ¿Se puede confiar en el resultado?
 
-Un modelo puede ajustarse bien a los datos y aun así estar equivocado. Estas cinco pruebas buscan dónde falla este modelo. Cada una responde una pregunta distinta.
+Un modelo puede ajustarse bien a los datos y aun así estar equivocado. Estas cinco pruebas buscan dónde falla este modelo:
+
+| | Prueba | Pregunta | Resultado |
+|:---:|---|---|---|
+| ✅ | [Controles del sampler](#51-el-cálculo-terminó-bien) | ¿El cálculo terminó bien? | 0 divergencias, R-hat 1,002, ESS 1.049 |
+| ✅ | [Semanas de prueba](#52-predice-semanas-que-no-vio) | ¿Predice semanas que no vio? | 2,9% de error en 12 semanas |
+| ✅ | [Prior contra posterior](#53-aprendió-de-los-datos-o-de-sus-supuestos) | ¿Aprendió de los datos? | El rango final es el 1% a 3% del inicial |
+| ⚠️ | [Recuperación de parámetros](#54-encuentra-efectos-que-conocemos) | ¿Encuentra efectos conocidos? | 49 de 50, pero sobreestima 3 canales |
+| ⚠️ | [Comparación con Meridian](#55-otro-modelo-llega-a-lo-mismo) | ¿Otro modelo llega a lo mismo? | Sí en 2 canales, no en 3 |
 
 ### 5.1 ¿El cálculo terminó bien?
 
@@ -143,7 +191,10 @@ El modelo predijo las últimas 12 semanas sin haberlas visto al entrenar. El err
 
 Si el resultado después de ver los datos (posterior) se parece a lo que el modelo suponía antes (prior), el resultado sale de los supuestos y no de los datos.
 
-![Retorno antes y después de ver los datos](docs/img/prior_posterior.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/es/dark/prior_posterior.png">
+  <img alt="Retorno por canal antes y después de ver los datos" src="docs/img/es/light/prior_posterior.png">
+</picture>
 
 En los cinco canales, el rango final ocupa entre el 1% y el 3% del rango inicial. El resultado viene de los datos.
 
@@ -157,15 +208,23 @@ Esta prueba se llama [recuperación de parámetros](#glosario). Funciona así:
 2. Con esa verdad y la inversión real, invento 10 historias de ventas, cada una con ruido distinto.
 3. Entreno un modelo nuevo con cada historia y comparo lo que encuentra con la verdad.
 
-![Recuperación de parámetros en 10 corridas](docs/img/recuperacion.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/es/dark/recovery.png">
+  <img alt="Recuperación de parámetros en 10 corridas" src="docs/img/es/light/recovery.png">
+</picture>
 
 El rango del 90% contuvo el valor real en 49 de 50 casos. Pero en los canales con poca inversión, el modelo tiende a sobreestimar el retorno: Facebook un 23%, búsqueda un 16% y prensa un 13%. TV y vía pública salen casi exactos.
+
+Si se corrige ese sesgo, el reparto óptimo mejora las ventas de medios un 32% en lugar de un 35%. La recomendación no cambia, porque el sesgo afecta al plan actual y al óptimo a la vez.
 
 ### 5.5 ¿Otro modelo llega a lo mismo?
 
 [Meridian](#glosario) es el MMM de Google. Lo entrené con los mismos datos, los mismos controles y las mismas 12 semanas de prueba, con sus priors por defecto.
 
-![Retorno por canal según PyMC-Marketing y Meridian](docs/img/meridian.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/es/dark/meridian.png">
+  <img alt="Retorno por canal según PyMC-Marketing y Meridian" src="docs/img/es/light/meridian.png">
+</picture>
 
 | Control | PyMC-Marketing | Meridian |
 |---|---:|---:|
@@ -176,11 +235,11 @@ Los dos modelos predicen igual de bien las semanas de prueba, y coinciden en TV 
 
 ### Qué concluyo de las pruebas
 
-Las pruebas 5.4 y 5.5 apuntan al mismo lugar. En prensa, Facebook y búsqueda, este modelo probablemente sobreestima el retorno. Por eso:
+> [!IMPORTANT]
+> Bajar la inversión en vía pública y mantener TV cerca de su nivel actual son decisiones firmes. Las cinco pruebas las apoyan.
 
-1. Bajar la inversión en vía pública es una decisión firme.
-2. Pasar plata a prensa, Facebook y búsqueda es una buena apuesta, pero la mejora real es probablemente menor que el 35% estimado.
-3. Un [experimento de incrementalidad](#glosario) en esos tres canales resolvería la duda. El modelo ya acepta esos resultados (ver [Calibración con experimentos](#7-calibración-con-experimentos)).
+> [!WARNING]
+> El tamaño de la mejora en prensa, Facebook y búsqueda es incierto. Un [experimento de incrementalidad](#glosario) en esos tres canales resolvería la duda. El modelo ya acepta esos resultados (ver [Calibración con experimentos](#7-calibración-con-experimentos)).
 
 Hay dos límites que ninguna prueba resuelve. Los datos son simulados, así que no hay una verdad de negocio para comparar. Además, la competencia explica gran parte de las ventas. Si algo afecta a la vez a la competencia y a la publicidad, el modelo no lo puede separar. Este problema se llama [confusión](#glosario).
 
@@ -199,6 +258,11 @@ Para calibrar el modelo, seguí estos pasos:
 1. Copiá `data/lift_tests_plantilla.csv` y agregá una fila por experimento.
 2. Entrená el modelo con `uv run mmm fit --lift-tests <tu archivo>.csv`.
 
+Si una fila tiene un error, `mmm fit` se detiene antes de entrenar y nombra la fila y la columna.
+
+<details>
+<summary>Ver las columnas del archivo de experimentos</summary>
+
 Todas las columnas van en pesos por semana:
 
 | Columna | Qué es |
@@ -209,7 +273,7 @@ Todas las columnas van en pesos por semana:
 | `delta_y` | Ventas extra por semana que midió el experimento |
 | `sigma` | Error estándar de `delta_y` |
 
-Si una fila tiene un error, `mmm fit` se detiene antes de entrenar y nombra la fila y la columna.
+</details>
 
 El modelo publicado no está calibrado, porque no hay experimentos reales para estos datos. El demo de Robyn trae experimentos de ejemplo, pero sus montos no coinciden con el dataset. Por ejemplo, el experimento de Facebook indica $ 421.000 de inversión en semanas donde el dataset registra $ 14.049. Calibrar con esos valores empeoraría el modelo.
 
@@ -250,17 +314,28 @@ En cada push, GitHub Actions ejecuta `ruff`, los tests de Python y los de JavaSc
 
 ## 9. Cómo ejecutar
 
-Necesitás `uv` y Node 24. Desde la carpeta del repositorio, instalá las dependencias:
+Necesitás `uv` y Node 24. Desde la carpeta del repositorio, instalá las dependencias, entrená el modelo y exportá los resultados:
 
 ```bash
 uv sync
 ```
 
-Entrená el modelo. Tarda unos minutos y guarda el resultado en `artifacts/`:
-
 ```bash
 uv run mmm fit
 ```
+
+```bash
+uv run mmm export
+```
+
+Abrí la página en `http://localhost:8000`:
+
+```bash
+uv run python -m http.server -d site 8000
+```
+
+<details>
+<summary>Ver las pruebas, Meridian y los tests</summary>
 
 Ejecutá las pruebas de verificación. Tardan unos 3 minutos:
 
@@ -274,11 +349,7 @@ Entrená Meridian. Corre en su propio entorno, porque pide otra versión de Arvi
 uv run --script scripts/run_meridian.py
 ```
 
-Exportá los resultados para la página, los casos de test y las imágenes del README:
-
-```bash
-uv run mmm export
-```
+Después de las dos, ejecutá de nuevo `uv run mmm export` para actualizar las imágenes del README.
 
 Corré los tests de Python y de JavaScript:
 
@@ -290,11 +361,7 @@ uv run pytest
 node --test "site/js/*.test.js"
 ```
 
-Abrí la página en `http://localhost:8000`:
-
-```bash
-uv run python -m http.server -d site 8000
-```
+</details>
 
 ## Glosario
 
@@ -303,7 +370,7 @@ uv run python -m http.server -d site 8000
 | Adstock | Efecto de la publicidad que sigue en las semanas siguientes. | [Wikipedia](https://en.wikipedia.org/wiki/Advertising_adstock) |
 | Bayesiano | Método que combina supuestos previos con datos y da rangos con su probabilidad. | [Wikipedia](https://es.wikipedia.org/wiki/Inferencia_bayesiana) |
 | Confusión | Una tercera variable que mueve a la vez la causa y el efecto, y engaña al modelo. | [Wikipedia](https://es.wikipedia.org/wiki/Variable_de_confusi%C3%B3n) |
-| Correlación | Medida de 0 a 1 (o de 0 a -1) de cuánto suben y bajan juntas dos variables. | [Wikipedia](https://es.wikipedia.org/wiki/Coeficiente_de_correlaci%C3%B3n_de_Pearson) |
+| Correlación | Medida de -1 a 1 de cuánto suben y bajan juntas dos variables. | [Wikipedia](https://es.wikipedia.org/wiki/Coeficiente_de_correlaci%C3%B3n_de_Pearson) |
 | Divergencias | Pasos en los que el sampler no pudo calcular bien. Deben ser 0. | [Stan](https://mc-stan.org/learn-stan/diagnostics-warnings.html) |
 | ESS | Cantidad efectiva de muestras independientes que produjo el sampler. | [ArviZ](https://python.arviz.org/en/stable/api/generated/arviz.ess.html) |
 | Experimento de incrementalidad | Prueba que cambia la inversión en un canal y mide las ventas extra. | [PyMC-Marketing](https://www.pymc-marketing.io/en/stable/notebooks/mmm/mmm_lift_test.html) |
