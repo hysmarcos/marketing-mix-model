@@ -61,3 +61,10 @@ def test_prepare_features_adds_controls():
     assert df["holiday"].isin([0, 1]).all()
     assert df.loc[df["DATE"] == "2015-12-21", "holiday"].item() == 1  # Navidad en Alemania
     assert df["trend"].iloc[0] == 0 and df["trend"].iloc[-1] == 1
+
+
+def test_continuous_controls_are_scaled_to_max_1():
+    df, _ = prepare_features(load_raw())
+    for column in ("newsletter", "competitor_sales_B"):
+        assert df[column].max() == pytest.approx(1.0)
+        assert df[column].min() >= 0

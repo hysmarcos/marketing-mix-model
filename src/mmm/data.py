@@ -68,6 +68,10 @@ def prepare_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         for start in out["DATE"]
     ]
 
+    # PyMC-Marketing escala ventas y canales, pero no los controles.
+    for column in ("newsletter", "competitor_sales_B"):
+        out[column] = out[column] / out[column].max()
+
     out["trend"] = range(len(out))
     out["trend"] = out["trend"] / (len(out) - 1)
 
