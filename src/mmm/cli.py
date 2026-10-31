@@ -9,11 +9,10 @@ import xarray as xr
 from pymc_marketing.mmm import MMM
 
 from mmm import plots
-from mmm.data import CHANNELS, load_raw, prepare_features
+from mmm.data import load_raw, prepare_features
 from mmm.diagnostics import Diagnostics, ModelQualityError, assert_quality, compute_diagnostics
-from mmm.export import HORIZON_WEEKS, build_results, write_results, write_simulator_cases
+from mmm.export import build_results, write_results, write_simulator_cases
 from mmm.model import TARGET, build_mmm, fit_mmm, predict_holdout, split_train_test
-from mmm.optimize import optimal_plan
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACTS = ROOT / "artifacts"
@@ -60,11 +59,7 @@ def export(_: argparse.Namespace) -> int:
     holdout = xr.load_dataarray(HOLDOUT_PATH)
     diagnostics = Diagnostics(**json.loads(DIAGNOSTICS_PATH.read_text(encoding="utf-8")))
 
-    current = {c: float(df[c].tail(HORIZON_WEEKS).mean()) for c in CHANNELS}
-    spend_max = {c: float(df[c].max()) for c in CHANNELS}
-    optimal = optimal_plan(mmm, current, spend_max, df["DATE"].max())
-
-    results = build_results(mmm, mmm.idata, df, train, holdout, diagnostics, optimal)
+    results = build_results(mmm, mmm.idata, df, train, holdout, diagnostics)
     write_results(results, RESULTS_PATH)
     write_simulator_cases(results, CASES_PATH)
     plots.write_readme_images(results, IMAGES_DIR)

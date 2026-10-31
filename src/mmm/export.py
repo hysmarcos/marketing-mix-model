@@ -11,7 +11,7 @@ from pymc_marketing.mmm import MMM
 
 from mmm.data import CHANNEL_LABELS, CHANNELS
 from mmm.diagnostics import Diagnostics
-from mmm.model import HOLDOUT_WEEKS, SEED, TARGET
+from mmm.model import HOLDOUT_WEEKS, SEED, TARGET, model_inputs
 
 N_DRAWS = 200
 HORIZON_WEEKS = 13
@@ -68,6 +68,28 @@ def _base_contribution(post: xr.Dataset) -> xr.DataArray:
     return post["intercept_contribution"] + control + post["yearly_seasonality_contribution"]
 
 
+def _recent_baseline(mmm: MMM, df: pd.DataFrame, idx: np.ndarray) -> np.ndarray:
+    """Base semanal promedio de las últimas semanas del dataset, por muestra (escala interna).
+
+    Usa las mismas semanas que el plan actual. Para las semanas de prueba, PyMC-Marketing
+    recalcula intercepto, controles y estacionalidad con las muestras del modelo.
+    """
+    recent = df.tail(HORIZON_WEEKS)
+    pred = mmm.sample_posterior_predictive(
+        model_inputs(mmm, recent),
+        var_names=[
+            "intercept_contribution",
+            "control_contribution",
+            "yearly_seasonality_contribution",
+        ],
+        extend_idata=False,
+        random_seed=SEED,
+        progressbar=False,
+    )
+    base = _base_contribution(pred).transpose("date", "sample")
+    return base.mean("date").values[idx]
+
+
 def _date(d) -> str:
     return pd.Timestamp(d).strftime("%Y-%m-%d")
 
@@ -79,7 +101,6 @@ def build_results(
     train: pd.DataFrame,
     holdout_pred: xr.DataArray,
     diagnostics: Diagnostics,
-    optimal_plan: dict[str, float],
 ) -> dict:
     post = _stack(idata)
     n = post.sizes["sample"]
@@ -113,7 +134,7 @@ def build_results(
         actual = float(df.loc[df["DATE"] == pd.Timestamp(date), TARGET].item())
         holdout.append({"date": _date(date), "actual": actual, **band(holdout_pred.sel(date=date))})
 
-    baseline = (_base_contribution(picked) * target_scale).isel(date=slice(-HORIZON_WEEKS, None))
+    baseline = _recent_baseline(mmm, df, idx) * target_scale
 
     results = {
         "meta": {
@@ -134,18 +155,21 @@ def build_results(
             "lam": {c: picked["saturation_lam"].sel(channel=c).values.tolist() for c in CHANNELS},
             "beta": {c: picked["saturation_beta"].sel(channel=c).values.tolist() for c in CHANNELS},
             "alpha": {c: picked["adstock_alpha"].sel(channel=c).values.tolist() for c in CHANNELS},
-            "baseline_weekly": baseline.mean("date").values.tolist(),
+            "baseline_weekly": baseline.tolist(),
         },
         "spend_max_weekly": {c: float(df[c].max()) for c in CHANNELS},
         "plans": {
             "current": {c: float(df[c].tail(HORIZON_WEEKS).mean()) for c in CHANNELS},
-            "optimal": {c: float(v) for c, v in optimal_plan.items()},
+            "optimal": {},
         },
         "contributions": contributions,
         "roi": roi,
         "holdout": holdout,
         "diagnostics": diagnostics.to_dict(),
     }
+    from mmm.optimize import optimal_plan
+
+    results["plans"]["optimal"] = optimal_plan(results)
     current = simulate_plan(results, results["plans"]["current"])["media"]["median"]
     optimal = simulate_plan(results, results["plans"]["optimal"])["media"]["median"]
     results["headline"] = {"media_uplift_pct": (optimal / current - 1) * 100}

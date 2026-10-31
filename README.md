@@ -2,13 +2,13 @@
 
 [![CI](https://github.com/hysmarcos/marketing-mix-model/actions/workflows/ci.yml/badge.svg)](https://github.com/hysmarcos/marketing-mix-model/actions/workflows/ci.yml)
 
-> In English: A Bayesian Marketing Mix Model built with PyMC-Marketing on Meta's Robyn demo dataset (208 weeks, 5 paid channels). It estimates the sales each channel drives, passes strict convergence checks and predicts 12 held-out weeks with a 2.9% error. A static page with an in-browser budget simulator shows that the same weekly budget, reallocated, drives about 22% more media sales.
+> In English: A Bayesian Marketing Mix Model built with PyMC-Marketing on Meta's Robyn demo dataset (208 weeks, 5 paid channels). It estimates the sales each channel drives, passes strict convergence checks and predicts 12 held-out weeks with a 2.9% error. A static page with an in-browser budget simulator shows that the same weekly budget, reallocated, drives about 36% more media sales.
 
 ## La pregunta
 
 ¿Cómo reparto el presupuesto de marketing del próximo trimestre entre los canales?
 
-La respuesta corta: pasar inversión de vía pública y búsqueda a prensa y Facebook. Con el mismo presupuesto semanal, las ventas que generan los medios suben un 22% según el modelo.
+La respuesta corta: pasar inversión de vía pública, TV y búsqueda a prensa y Facebook. Con el mismo presupuesto semanal, las ventas que generan los medios suben un 36% según el modelo.
 
 Página con los resultados y el simulador: https://hysmarcos.github.io/marketing-mix-model/
 
@@ -26,14 +26,14 @@ Vía pública es el único canal que no recupera lo invertido (0,5 por cada peso
 
 | Canal | Inversión semanal actual | Inversión semanal óptima |
 |---|---:|---:|
-| TV | $ 9.474 | $ 9.604 |
-| Vía pública | $ 9.649 | $ 4.737 |
-| Prensa | $ 5.938 | $ 11.140 |
-| Facebook | $ 3.510 | $ 8.042 |
-| Búsqueda | $ 12.542 | $ 7.589 |
+| TV | $ 9.474 | $ 5.267 |
+| Vía pública | $ 9.649 | $ 0 |
+| Prensa | $ 5.938 | $ 13.898 |
+| Facebook | $ 3.510 | $ 12.350 |
+| Búsqueda | $ 12.542 | $ 9.597 |
 | Total | $ 41.112 | $ 41.112 |
 
-El plan actual es el promedio de las últimas 13 semanas del dataset. El reparto óptimo sale del optimizador de presupuesto de PyMC-Marketing, con el mismo total semanal.
+El plan actual es el promedio de las últimas 13 semanas del dataset. Para el reparto óptimo, el algoritmo SLSQP de scipy busca el reparto con más ventas de medios en el simulador, con el mismo total semanal. Cada canal puede recibir hasta 1,5 veces su inversión semanal más alta en los datos.
 
 ![Aporte mensual de cada canal a las ventas](docs/img/aportes.png)
 
@@ -134,7 +134,7 @@ data/raw/     dataset de demo de Robyn
 
 1. Comparar los resultados con Meridian, el MMM de Google.
 2. Calibrar el modelo con experimentos de incrementalidad (lift tests).
-3. Sumar al simulador el efecto que queda de las semanas anteriores.
+3. Sumar al simulador el efecto que queda de las semanas anteriores y usar el optimizador de presupuesto de PyMC-Marketing, que tiene en cuenta ese efecto.
 
 ## Fuente de los datos y licencia
 

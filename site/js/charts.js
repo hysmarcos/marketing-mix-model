@@ -1,19 +1,9 @@
 // Gráficos con Observable Plot. Cada función devuelve un nodo SVG listo para insertar.
 import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm";
+import { day, money, month, num1 } from "./format.js";
 import { band, saturationCurve, weeklyContribution } from "./simulator.js";
 
-const short = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
-const decimal = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
-const dateFmt = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short", year: "numeric" });
-
-export function money(v) {
-  const a = Math.abs(v);
-  if (a >= 1e6) return `$ ${short.format(v / 1e6)} M`;
-  if (a >= 1e3) return `$ ${short.format(v / 1e3)} k`;
-  return `$ ${short.format(v)}`;
-}
-export const num1 = (v) => decimal.format(v);
-export const day = (d) => dateFmt.format(d instanceof Date ? d : new Date(d));
+export { money, num1 };
 
 function baseStyle(theme) {
   return {
@@ -81,15 +71,13 @@ export function roiChart(results, theme, width) {
   });
 }
 
-const monthFmt = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" });
-
 // Suma los aportes semanales por mes. Las semanas sueltas son muy ruidosas para leer.
 export function monthlyContributions(results) {
   const months = new Map();
   for (const r of results.contributions) {
     if (r.series === "base") continue;
     const key = r.date.slice(0, 7);
-    if (!months.has(key)) months.set(key, { month: new Date(`${key}-01T00:00:00`), total: 0 });
+    if (!months.has(key)) months.set(key, { month: new Date(`${key}-01`), total: 0 });
     const entry = months.get(key);
     entry[r.series] = (entry[r.series] ?? 0) + r.value;
     entry.total += r.value;
@@ -134,7 +122,7 @@ export function contributionChart(results, theme, width) {
           ...tipFormat(theme),
           title: (d) =>
             [
-              monthFmt.format(d.month),
+              month(d.month),
               ...channels.map((c) => `${labels[c]}: ${money(d[c])}`),
               `Total medios: ${money(d.total)}`,
             ].join("\n"),
