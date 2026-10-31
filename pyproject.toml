@@ -33,6 +33,10 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+# Los notebooks importan mmm primero: configura PyTensor antes de cargar PyMC.
+"notebooks/*" = ["I001", "E402"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["slow: entrena un modelo chico (tarda minutos)"]
