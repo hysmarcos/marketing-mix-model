@@ -124,3 +124,16 @@ def test_constant_history_equals_steady_state(fake_results):
 def test_zero_plan_keeps_carryover_from_history(fake_results):
     r = simulate_plan(fake_results, {c: 0.0 for c in fake_results["channels"]})
     assert r["media"]["median"] > 0
+
+
+def test_uplift_band_and_probability(fake_results):
+    from mmm.export import uplift_summary
+
+    better = {c: v * 1.2 for c, v in fake_results["plans"]["current"].items()}
+    out = uplift_summary(fake_results, fake_results["plans"]["current"], better)
+    assert out["p05"] <= out["median"] <= out["p95"]
+    assert out["prob_positive"] == 1.0
+    same = uplift_summary(
+        fake_results, fake_results["plans"]["current"], fake_results["plans"]["current"]
+    )
+    assert same["median"] == pytest.approx(0) and same["prob_positive"] == 0.0

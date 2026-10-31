@@ -77,14 +77,19 @@ def export(_: argparse.Namespace) -> int:
     diagnostics = Diagnostics(**json.loads(DIAGNOSTICS_PATH.read_text(encoding="utf-8")))
 
     results = build_results(mmm, mmm.idata, df, train, holdout, diagnostics)
+    validation = None
+    if VALIDATION_PATH.exists():
+        from mmm.validation import bias_corrected_uplift
+
+        validation = json.loads(VALIDATION_PATH.read_text(encoding="utf-8"))
+        results["headline"]["bias_corrected_pct"] = bias_corrected_uplift(
+            results, validation["recovery"]
+        )
     write_results(results, RESULTS_PATH)
     write_simulator_cases(results, CASES_PATH)
     meridian = None
     if MERIDIAN_PATH.exists():
         meridian = json.loads(MERIDIAN_PATH.read_text(encoding="utf-8"))
-    validation = None
-    if VALIDATION_PATH.exists():
-        validation = json.loads(VALIDATION_PATH.read_text(encoding="utf-8"))
     plots.write_readme_images(results, IMAGES_DIR, meridian=meridian, validation=validation)
     print(f"Resultados en {RESULTS_PATH}")
     print(f"Mejora con el reparto óptimo: {results['headline']['media_uplift_pct']:.1f}%")

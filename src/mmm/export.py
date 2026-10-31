@@ -75,6 +75,18 @@ def media_draws(results: dict, plan: dict[str, float]) -> np.ndarray:
     return np.asarray(total)
 
 
+def uplift_summary(results: dict, current: dict[str, float], plan: dict[str, float]) -> dict:
+    """Mejora porcentual de `plan` contra `current` en ventas de medios, muestra por muestra."""
+    ratio = media_draws(results, plan) / media_draws(results, current) - 1
+    p05, median, p95 = np.percentile(100 * ratio, QUANTILES)
+    return {
+        "median": float(median),
+        "p05": float(p05),
+        "p95": float(p95),
+        "prob_positive": float((ratio > 0).mean()),
+    }
+
+
 def simulate_plan(results: dict, plan: dict[str, float]) -> dict:
     weeks = results["meta"]["horizon_weeks"]
     media = media_draws(results, plan)
@@ -199,7 +211,10 @@ def build_results(
     results["plans"]["optimal"] = optimal_plan(results)
     current = simulate_plan(results, results["plans"]["current"])["media"]["median"]
     optimal = simulate_plan(results, results["plans"]["optimal"])["media"]["median"]
-    results["headline"] = {"media_uplift_pct": (optimal / current - 1) * 100}
+    results["headline"] = {
+        "media_uplift_pct": (optimal / current - 1) * 100,
+        "uplift": uplift_summary(results, results["plans"]["current"], results["plans"]["optimal"]),
+    }
     return results
 
 

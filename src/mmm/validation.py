@@ -8,6 +8,8 @@
    modelo con esas ventas y se mira si encuentra los efectos.
 """
 
+import copy
+
 import numpy as np
 import pandas as pd
 import pymc as pm
@@ -15,7 +17,7 @@ import xarray as xr
 from pymc_marketing.mmm import MMM
 
 from mmm.data import CHANNELS, SEED, TARGET
-from mmm.export import band
+from mmm.export import band, media_draws
 from mmm.model import build_mmm, fit_mmm
 
 CORRELATION_COLUMNS = [TARGET, *CHANNELS, "newsletter", "competitor_sales_B"]
@@ -129,6 +131,23 @@ def recovery_run(
         {"channel": c, "true": float(true_roi.sel(channel=c)), **band(recovered.sel(channel=c))}
         for c in CHANNELS
     ]
+
+
+def bias_corrected_uplift(results: dict, recovery: list[dict]) -> float:
+    """Mejora del reparto óptimo si cada canal rinde lo que sugiere la recuperación.
+
+    Escala el efecto de cada canal por verdad / estimado. Si el modelo sobreestima un
+    canal en la recuperación, se asume que también lo sobreestima con los datos reales.
+    """
+    corrected = copy.deepcopy(results)
+    for row in recovery:
+        factor = row["true"] / row["median"]
+        beta = corrected["draws"]["beta"][row["channel"]]
+        corrected["draws"]["beta"][row["channel"]] = [b * factor for b in beta]
+    plans = corrected["plans"]
+    optimal = np.median(media_draws(corrected, plans["optimal"]))
+    current = np.median(media_draws(corrected, plans["current"]))
+    return float(100 * (optimal / current - 1))
 
 
 def summarize_recovery(runs: list[list[dict]]) -> list[dict]:

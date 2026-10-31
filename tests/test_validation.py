@@ -85,3 +85,30 @@ def test_prior_posterior_roi_smoke(smoke_model, prepared_data):
     for r in rows:
         for k in ("prior", "posterior"):
             assert r[k]["p05"] <= r[k]["median"] <= r[k]["p95"]
+
+
+def test_bias_corrected_uplift_without_bias_matches_plain(fake_results):
+    from mmm.export import media_draws
+    from mmm.validation import bias_corrected_uplift
+
+    plan = {c: v * 1.5 for c, v in fake_results["plans"]["current"].items()}
+    fake_results["plans"]["optimal"] = plan
+    recovery = [{"channel": c, "true": 2.0, "median": 2.0} for c in CHANNELS]
+    plain = (
+        np.median(media_draws(fake_results, plan))
+        / np.median(media_draws(fake_results, fake_results["plans"]["current"]))
+        - 1
+    )
+    assert bias_corrected_uplift(fake_results, recovery) == pytest.approx(100 * plain)
+
+
+def test_bias_corrected_uplift_lowers_overestimated_channels(fake_results):
+    from mmm.validation import bias_corrected_uplift
+
+    plan = {c: v * 1.5 for c, v in fake_results["plans"]["current"].items()}
+    fake_results["plans"]["optimal"] = plan
+    honest = [{"channel": c, "true": 1.0, "median": 1.0} for c in CHANNELS]
+    biased = [{"channel": c, "true": 1.0, "median": 1.0 if c == "tv_S" else 2.0} for c in CHANNELS]
+    assert bias_corrected_uplift(fake_results, biased) != pytest.approx(
+        bias_corrected_uplift(fake_results, honest)
+    )
