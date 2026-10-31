@@ -13,7 +13,8 @@ from mmm.export import band, weekly_contribution
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# Paleta categórica validada para daltonismo y contraste (modo claro). Debe coincidir con site/css/styles.css.
+# Paleta categórica validada para daltonismo y contraste (modo claro).
+# Debe coincidir con site/css/styles.css.
 PALETTE = {
     "tv_S": "#2a78d6",
     "ooh_S": "#eb6834",

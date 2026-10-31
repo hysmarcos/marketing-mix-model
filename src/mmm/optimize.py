@@ -1,12 +1,15 @@
 """Reparto óptimo del presupuesto semanal.
 
-Maximiza la misma función que usa el simulador de la página: las ventas de medios por
-semana en estado estable, promediadas sobre las muestras del modelo. Así el reparto
-óptimo es óptimo justo en los números que ve el visitante.
+Maximiza la misma función que usa el simulador de la página: las ventas de medios de las
+próximas semanas, con el efecto que sigue de la inversión real reciente (adstock),
+promediadas sobre las muestras del modelo. Así el reparto óptimo es óptimo justo en los
+números que ve el visitante.
 """
 
 import numpy as np
 from scipy.optimize import minimize
+
+from mmm.export import adstocked_spend
 
 MAX_SPEND_FACTOR = 1.5
 
@@ -18,16 +21,26 @@ def optimal_plan(results: dict) -> dict[str, float]:
     current = np.array([results["plans"]["current"][c] for c in channels])
     total = current.sum()
 
-    # Se trabaja en fracciones del total para que el optimizador vea números de orden 1.
-    lam = np.array([draws["lam"][c] for c in channels])  # (canal, muestra)
-    beta = np.array([draws["beta"][c] for c in channels])
-    k = lam * total / np.array([scales["channel"][c] for c in channels])[:, None]
+    weeks = results["meta"]["horizon_weeks"]
     upper = np.array([MAX_SPEND_FACTOR * results["spend_max_weekly"][c] for c in channels])
 
+    # Inversión con adstock = parte que viene del pasado + gasto semanal x pesos futuros.
+    # Se trabaja en fracciones del total para que el optimizador vea números de orden 1.
+    past, future, k, beta = [], [], [], []
+    for c in channels:
+        alpha = draws["alpha"][c]
+        past.append(adstocked_spend(alpha, results["history"][c], 0.0, weeks))
+        future.append(adstocked_spend(alpha, np.zeros(len(results["history"][c])), 1.0, weeks))
+        k.append(np.asarray(draws["lam"][c], dtype=float)[:, None] / scales["channel"][c])
+        beta.append(np.asarray(draws["beta"][c], dtype=float)[:, None])
+    past, future = np.array(past), np.array(future) * total  # (canal, muestra, semana)
+    k, beta = np.array(k), np.array(beta)
+
     def negative_media(u: np.ndarray) -> tuple[float, np.ndarray]:
-        h = np.tanh(k * u[:, None] / 2)  # logistic(z) = tanh(z / 2)
-        value = (beta * h).sum(axis=0).mean()
-        grad = (beta * k * 0.5 * (1 - h**2)).mean(axis=1)
+        x = past + u[:, None, None] * future
+        h = np.tanh(k * x / 2)  # logistic(z) = tanh(z / 2)
+        value = (beta * h).sum(axis=(0, 2)).mean()
+        grad = (beta * k * future * 0.5 * (1 - h**2)).sum(axis=2).mean(axis=1)
         return -value, -grad
 
     bounds = [(0.0, ub / total) for ub in upper]

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
+  adstockWeights,
   isOutOfRange,
   percentile,
   saturationCurve,
@@ -57,4 +58,14 @@ test("curva de saturación crece y empieza en 0", () => {
   assert.equal(curve[0].median, 0);
   for (let i = 1; i < curve.length; i++) assert.ok(curve[i].median >= curve[i - 1].median);
   assert.ok(curve.every((p) => p.p05 <= p.median && p.median <= p.p95));
+});
+
+test("pesos de adstock conocidos", () => {
+  const w = adstockWeights(0.5, 3);
+  [1, 0.5, 0.25].forEach((v, i) => assert.ok(Math.abs(w[i] - v / 1.75) < 1e-15));
+});
+
+test("plan en 0 conserva el efecto de las semanas previas", () => {
+  const zero = Object.fromEntries(results.channels.map((c) => [c, 0]));
+  assert.ok(simulatePlan(results, zero).media.median > 0);
 });

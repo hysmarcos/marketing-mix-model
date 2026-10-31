@@ -19,6 +19,9 @@ mmm = "mmm.cli:main"
 
 [dependency-groups]
 dev = ["pytest", "ruff", "nbconvert", "ipykernel"]
+meridian = [
+    "google-meridian>=1.5.2",
+]
 
 [build-system]
 requires = ["hatchling"]

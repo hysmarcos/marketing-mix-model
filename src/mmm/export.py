@@ -39,21 +39,46 @@ def band(values: np.ndarray) -> dict:
     return {"median": float(median), "p05": float(p05), "p95": float(p95)}
 
 
-def simulate_plan(results: dict, plan: dict[str, float]) -> dict:
+def adstock_weights(alpha: np.ndarray, l_max: int) -> np.ndarray:
+    """Pesos del adstock geométrico normalizado, una fila por muestra: alpha^l / suma."""
+    w = np.asarray(alpha, dtype=float)[:, None] ** np.arange(l_max)
+    return w / w.sum(axis=1, keepdims=True)
+
+
+def adstocked_spend(alpha: np.ndarray, history: np.ndarray, spend: float, weeks: int) -> np.ndarray:
+    """Inversión con adstock en cada semana futura, por muestra (muestra, semana).
+
+    `history` son las últimas l_max - 1 semanas reales, de la más vieja a la más nueva.
+    Desde la primera semana futura, la inversión es `spend` todas las semanas.
+    """
+    history = np.asarray(history, dtype=float)
+    l_max = len(history) + 1
+    series = np.concatenate([history, np.full(weeks, spend, dtype=float)])
+    lagged = np.array(
+        [[series[len(history) + t - lag] for lag in range(l_max)] for t in range(weeks)]
+    )
+    return adstock_weights(alpha, l_max) @ lagged.T
+
+
+def media_draws(results: dict, plan: dict[str, float]) -> np.ndarray:
+    """Ventas de medios en todo el horizonte, por muestra, con el efecto de semanas previas."""
     draws, scales = results["draws"], results["scales"]
     weeks = results["meta"]["horizon_weeks"]
-    media = sum(
-        weekly_contribution(
-            plan[c],
-            draws["lam"][c],
-            draws["beta"][c],
-            scales["channel"][c],
-            scales["target"],
+    total = 0.0
+    for c in results["channels"]:
+        lam = np.asarray(draws["lam"][c], dtype=float)[:, None]
+        beta = np.asarray(draws["beta"][c], dtype=float)[:, None]
+        x = adstocked_spend(draws["alpha"][c], results["history"][c], plan[c], weeks)
+        total = total + (scales["target"] * beta * logistic(lam * x / scales["channel"][c])).sum(
+            axis=1
         )
-        for c in results["channels"]
-    )
-    media = weeks * np.asarray(media)
-    total = media + weeks * np.asarray(draws["baseline_weekly"], dtype=float)
+    return np.asarray(total)
+
+
+def simulate_plan(results: dict, plan: dict[str, float]) -> dict:
+    weeks = results["meta"]["horizon_weeks"]
+    media = media_draws(results, plan)
+    total = media + weeks * np.asarray(results["draws"]["baseline_weekly"], dtype=float)
     return {"media": band(media), "total": band(total)}
 
 
@@ -144,7 +169,9 @@ def build_results(
             "horizon_weeks": HORIZON_WEEKS,
             "n_draws": N_DRAWS,
             "holdout_weeks": HOLDOUT_WEEKS,
+            "l_max": mmm.adstock.l_max,
         },
+        "history": {c: df[c].tail(mmm.adstock.l_max - 1).astype(float).tolist() for c in CHANNELS},
         "channels": CHANNELS,
         "channel_labels": CHANNEL_LABELS,
         "scales": {
@@ -194,6 +221,6 @@ def write_simulator_cases(results: dict, path: Path) -> None:
         {c: 0.0 for c in channels},
         {c: (1.5 * results["spend_max_weekly"][c] if c == first else 0.0) for c in channels},
     ]
-    subset = {k: results[k] for k in ("channels", "scales", "draws", "meta")}
+    subset = {k: results[k] for k in ("channels", "scales", "draws", "meta", "history")}
     cases = [{"plan": plan, "expected": simulate_plan(results, plan)} for plan in plans]
     _write_json({"results_subset": subset, "cases": cases}, path)

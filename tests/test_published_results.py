@@ -7,7 +7,7 @@ import pytest
 
 from mmm.cli import RESULTS_PATH
 from mmm.data import load_raw
-from mmm.export import weekly_contribution
+from mmm.export import media_draws
 
 pytestmark = pytest.mark.skipif(not RESULTS_PATH.exists(), reason="falta resultados.json")
 
@@ -18,21 +18,7 @@ def results():
 
 
 def mean_media(results, plan):
-    draws, scales = results["draws"], results["scales"]
-    return float(
-        np.mean(
-            sum(
-                weekly_contribution(
-                    plan[c],
-                    draws["lam"][c],
-                    draws["beta"][c],
-                    scales["channel"][c],
-                    scales["target"],
-                )
-                for c in results["channels"]
-            )
-        )
-    )
+    return float(media_draws(results, plan).mean())
 
 
 def test_optimal_plan_is_not_beaten_by_random_reallocations(results):
@@ -53,5 +39,6 @@ def test_optimal_plan_is_not_beaten_by_random_reallocations(results):
 def test_total_sales_match_the_recent_quarter(results):
     recent = load_raw()["revenue"].tail(results["meta"]["horizon_weeks"]).mean()
     baseline = float(np.median(results["draws"]["baseline_weekly"]))
-    media = mean_media(results, results["plans"]["current"])
+    weeks = results["meta"]["horizon_weeks"]
+    media = mean_media(results, results["plans"]["current"]) / weeks
     assert baseline + media == pytest.approx(recent, rel=0.25)

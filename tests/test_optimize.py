@@ -1,20 +1,12 @@
 import numpy as np
 import pytest
 
-from mmm.export import simulate_plan, weekly_contribution
+from mmm.export import media_draws, simulate_plan
 from mmm.optimize import MAX_SPEND_FACTOR, optimal_plan
 
 
 def mean_media(results, plan):
-    draws, scales = results["draws"], results["scales"]
-    return np.mean(
-        sum(
-            weekly_contribution(
-                plan[c], draws["lam"][c], draws["beta"][c], scales["channel"][c], scales["target"]
-            )
-            for c in results["channels"]
-        )
-    )
+    return media_draws(results, plan).mean()
 
 
 def test_optimal_plan_same_budget_and_bounds(fake_results):
@@ -48,3 +40,23 @@ def test_smoke_results_are_complete(smoke_results):
     current = simulate_plan(smoke_results, smoke_results["plans"]["current"])["media"]["median"]
     optimal = simulate_plan(smoke_results, smoke_results["plans"]["optimal"])["media"]["median"]
     assert optimal >= current * 0.999
+
+
+def test_optimal_plan_accounts_for_carryover(fake_results):
+    channels = fake_results["channels"]
+    # Canales con arrastre muy distinto y sin inversión previa: el estado estable ya no sirve.
+    for i, c in enumerate(channels):
+        fake_results["draws"]["alpha"][c] = [0.05 + 0.2 * i] * 200
+        fake_results["history"][c] = [0.0] * 7
+    opt = optimal_plan(fake_results)
+    best = mean_media(fake_results, opt)
+    step = 0.01 * sum(opt.values())
+    # Ningún traspaso chico entre dos canales mejora el resultado (condición de óptimo local).
+    for a in channels:
+        for b in channels:
+            if a == b or opt[a] < step:
+                continue
+            moved = {**opt, a: opt[a] - step, b: opt[b] + step}
+            if moved[b] > MAX_SPEND_FACTOR * fake_results["spend_max_weekly"][b]:
+                continue
+            assert mean_media(fake_results, moved) <= best * (1 + 1e-7), (a, b)
