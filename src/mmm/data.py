@@ -9,6 +9,10 @@ RAW_PATH = Path(__file__).resolve().parents[2] / "data" / "raw" / "dt_simulated_
 
 CHANNELS: list[str] = ["tv_S", "ooh_S", "print_S", "facebook_S", "search_S"]
 
+TARGET = "revenue"
+HOLDOUT_WEEKS = 12
+SEED = 42
+
 CHANNEL_LABELS: dict[str, str] = {
     "tv_S": "TV",
     "ooh_S": "Vía pública",

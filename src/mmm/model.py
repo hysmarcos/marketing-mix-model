@@ -4,11 +4,9 @@ import pandas as pd
 import xarray as xr
 from pymc_marketing.mmm import MMM, GeometricAdstock, LogisticSaturation
 
-from mmm.data import CHANNELS
+from mmm.data import CHANNELS, HOLDOUT_WEEKS, SEED, TARGET
 
-HOLDOUT_WEEKS = 12
-SEED = 42
-TARGET = "revenue"
+__all__ = ["HOLDOUT_WEEKS", "SEED", "TARGET"]
 
 
 def split_train_test(

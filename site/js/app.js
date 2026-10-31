@@ -1,5 +1,13 @@
 // Arma la página: titular, simulador, gráficos y controles de calidad.
-import { contributionChart, curveCharts, holdoutChart, money, num1, roiChart } from "./charts.js";
+import {
+  contributionChart,
+  curveCharts,
+  holdoutChart,
+  meridianChart,
+  money,
+  num1,
+  roiChart,
+} from "./charts.js";
 import { isOutOfRange, simulatePlan } from "./simulator.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -15,6 +23,8 @@ function readTheme(channels) {
     muted: v("--muted"),
     axis: v("--axis"),
     accent: v("--accent"),
+    model1: v("--model-1"),
+    model2: v("--model-2"),
     series: Object.fromEntries(channels.map((c) => [c, v(`--${c}`)])),
   };
 }
@@ -213,10 +223,20 @@ function renderTables(results) {
   }
 }
 
-function renderCharts(results) {
+function renderCharts(results, meridian) {
   const theme = readTheme(results.channels);
   const width = (sel) => $(sel).clientWidth;
   const { channels, channel_labels: labels } = results;
+
+  if (meridian) {
+    legend($("#chart-meridian .legend"), [
+      { label: "PyMC-Marketing (este modelo)", color: theme.model1 },
+      { label: "Meridian (Google)", color: theme.model2 },
+    ]);
+    $("#chart-meridian .plot").replaceChildren(
+      meridianChart(results, meridian, theme, width("#chart-meridian .plot")),
+    );
+  }
 
   $("#chart-roi .plot").replaceChildren(roiChart(results, theme, width("#chart-roi .plot")));
 
@@ -292,9 +312,39 @@ function setupTheme(onChange) {
   label();
 }
 
+function renderMeridianText(results, meridian) {
+  const labels = results.channel_labels;
+  $("#chart-meridian").hidden = false;
+  $("#meridian-sub").textContent +=
+    ` Error en las 12 semanas de prueba: PyMC-Marketing ${num1(results.diagnostics.holdout_mape * 100)}%,` +
+    ` Meridian ${num1(meridian.diagnostics.holdout_mape * 100)}%.`;
+  const byChannel = Object.fromEntries(meridian.roi.map((r) => [r.channel, r]));
+  const range = (r) => `${num1(r.median)} (${num1(r.p05)} a ${num1(r.p95)})`;
+  renderTable(
+    $("#chart-meridian .table-wrap"),
+    [
+      { label: "Canal", value: (r) => labels[r.channel] },
+      { label: "PyMC-Marketing", value: (r) => range(r) },
+      { label: "Meridian", value: (r) => range(byChannel[r.channel]) },
+    ],
+    results.roi,
+  );
+}
+
+async function loadMeridian() {
+  try {
+    const response = await fetch("data/meridian.json");
+    return response.ok ? await response.json() : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function main() {
   const results = await (await fetch("data/resultados.json")).json();
-  const draw = () => renderCharts(results);
+  const meridian = await loadMeridian();
+  if (meridian) renderMeridianText(results, meridian);
+  const draw = () => renderCharts(results, meridian);
   renderIntro(results);
   renderSimulator(results);
   renderTables(results);
@@ -304,7 +354,7 @@ async function main() {
   let timer;
   new ResizeObserver(() => {
     clearTimeout(timer);
-    timer = setTimeout(() => renderCharts(results), 150);
+    timer = setTimeout(() => renderCharts(results, meridian), 150);
   }).observe($("main"));
 }
 

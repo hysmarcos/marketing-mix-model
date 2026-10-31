@@ -85,6 +85,46 @@ export function monthlyContributions(results) {
   return [...months.values()];
 }
 
+// Retorno por canal de los dos modelos. El color marca el modelo; el canal está en el eje.
+export function meridianChart(results, meridian, theme, width) {
+  const labels = results.channel_labels;
+  const order = [...results.roi].sort((a, b) => b.median - a.median).map((r) => r.channel);
+  const rows = [
+    ...results.roi.map((r) => ({ ...r, model: "PyMC-Marketing", dy: -7, color: theme.model1 })),
+    ...meridian.roi.map((r) => ({ ...r, model: "Meridian", dy: 7, color: theme.model2 })),
+  ].map((r) => ({ ...r, label: labels[r.channel] }));
+  const marks = [Plot.ruleX([1], { stroke: theme.axis })];
+  for (const dy of [-7, 7]) {
+    const part = rows.filter((r) => r.dy === dy);
+    marks.push(
+      Plot.ruleY(part, { y: "label", x1: "p05", x2: "p95", dy, stroke: "color", strokeWidth: 2 }),
+      Plot.dot(part, { y: "label", x: "median", dy, r: 5, fill: "color", stroke: theme.surface, strokeWidth: 2 }),
+      Plot.tip(
+        part,
+        Plot.pointerX({
+          y: "label",
+          x: "median",
+          dy,
+          ...tipFormat(theme),
+          title: (d) =>
+            `${d.label} · ${d.model}
+Mediana: ${num1(d.median)}
+Rango del 90%: ${num1(d.p05)} a ${num1(d.p95)}`,
+        }),
+      ),
+    );
+  }
+  return Plot.plot({
+    width,
+    height: 64 + order.length * 52,
+    marginLeft: 96,
+    style: baseStyle(theme),
+    x: { label: "Ventas por cada peso invertido →", grid: true, nice: true },
+    y: { domain: order.map((c) => labels[c]), label: null, tickSize: 0 },
+    marks,
+  });
+}
+
 export function contributionChart(results, theme, width) {
   const { channels, channel_labels: labels } = results;
   const months = monthlyContributions(results);

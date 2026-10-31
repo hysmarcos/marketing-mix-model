@@ -193,9 +193,37 @@ def plot_saturation(results: dict) -> Figure:
     return fig
 
 
-def write_readme_images(results: dict, out_dir: Path) -> None:
+def plot_meridian(results: dict, meridian: dict) -> Figure:
+    order = [r["channel"] for r in sorted(results["roi"], key=lambda r: r["median"])]
+    models = [
+        ("PyMC-Marketing (este modelo)", results["roi"], PALETTE["tv_S"], 0.15),
+        ("Meridian (Google)", meridian["roi"], PALETTE["ooh_S"], -0.15),
+    ]
+    fig, ax = plt.subplots(figsize=(8, 4.6))
+    for name, rows, color, offset in models:
+        by_channel = {r["channel"]: r for r in rows}
+        for i, c in enumerate(order):
+            r = by_channel[c]
+            y = i + offset
+            ax.plot([r["p05"], r["p95"]], [y, y], color=color, linewidth=2, solid_capstyle="round")
+            label = name if i == 0 else None
+            ax.scatter(r["median"], y, s=50, color=color, edgecolor=SURFACE, zorder=3, label=label)
+    ax.axvline(1, color=AXIS, linewidth=1)
+    ax.set_yticks(range(len(order)), [CHANNEL_LABELS[c] for c in order])
+    ax.grid(axis="x")
+    ax.grid(axis="y", visible=False)
+    ax.set_xlabel("Ventas por cada peso invertido (mediana y rango del 90%)")
+    ax.legend(loc="lower left", bbox_to_anchor=(0, 1.0), ncols=2)
+    _title(ax, "Retorno por canal: PyMC-Marketing y Meridian")
+    fig.tight_layout()
+    return fig
+
+
+def write_readme_images(results: dict, out_dir: Path, meridian: dict | None = None) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
-    for name, make in (("roi.png", plot_roi), ("aportes.png", plot_contributions)):
-        fig = make(results)
+    figures = [("roi.png", plot_roi(results)), ("aportes.png", plot_contributions(results))]
+    if meridian is not None:
+        figures.append(("meridian.png", plot_meridian(results, meridian)))
+    for name, fig in figures:
         fig.savefig(out_dir / name, dpi=160)
         plt.close(fig)

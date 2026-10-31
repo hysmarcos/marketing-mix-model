@@ -37,6 +37,26 @@ El plan actual es el promedio de las últimas 13 semanas del dataset. Para el re
 
 ![Aporte mensual de cada canal a las ventas](docs/img/aportes.png)
 
+## Comparación con Meridian
+
+Meridian es el MMM de Google. Lo entrené con los mismos datos, los mismos controles y las mismas 12 semanas de prueba, con sus priors por defecto.
+
+![Retorno por canal según PyMC-Marketing y Meridian](docs/img/meridian.png)
+
+| Control | PyMC-Marketing | Meridian |
+|---|---:|---:|
+| R-hat máximo | 1,002 | 1,008 |
+| Error en las 12 semanas de prueba (MAPE) | 2,9% | 3,0% |
+
+Los dos modelos predicen igual de bien las semanas de prueba. Coinciden en dos canales:
+
+1. TV rinde alrededor de 5 pesos por cada peso invertido.
+2. Vía pública no recupera lo invertido.
+
+En prensa, Facebook y búsqueda, Meridian da retornos más bajos. Los rangos de los dos modelos se superponen, así que los datos no alcanzan para decidir cuál tiene razón. La diferencia viene de los priors. El prior de Meridian sobre el retorno empuja los valores hacia 1,2, y esos tres canales tienen poca inversión en los datos.
+
+Conclusión para el negocio: bajar la inversión en vía pública es una decisión firme, porque los dos modelos la apoyan. El tamaño de la mejora al pasar plata a prensa, Facebook y búsqueda es incierto. Un experimento de incrementalidad en esos canales resolvería la duda.
+
 ## Cómo funciona el modelo
 
 El modelo es bayesiano. No da un solo número por canal. Da un rango de valores posibles, cada uno con su probabilidad. La página muestra el rango donde cae el 90% de esos valores.
@@ -82,6 +102,29 @@ El simulador de la página corre en el navegador, sin servidor. Usa 200 muestras
 
 El cálculo existe dos veces: en Python (`src/mmm/export.py`) y en JavaScript (`site/js/simulator.js`). Un test compara los dos resultados en 4 casos y exige una diferencia relativa menor que 1e-6.
 
+### Calibración con experimentos
+
+Un experimento de incrementalidad (lift test) mide cuántas ventas extra genera un cambio de inversión en un canal. Si hay experimentos, el modelo los usa para ajustar sus curvas de saturación.
+
+Para calibrar el modelo, seguí estos pasos:
+
+1. Copiá `data/lift_tests_plantilla.csv` y agregá una fila por experimento.
+2. Entrená el modelo con `uv run mmm fit --lift-tests <tu archivo>.csv`.
+
+Todas las columnas van en pesos por semana:
+
+| Columna | Qué es |
+|---|---|
+| `channel` | Canal del experimento, por ejemplo `facebook_S` |
+| `x` | Inversión semanal antes del experimento |
+| `delta_x` | Cambio de la inversión semanal durante el experimento |
+| `delta_y` | Ventas extra por semana que midió el experimento |
+| `sigma` | Error estándar de `delta_y` |
+
+Si una fila tiene un error, `mmm fit` se detiene antes de entrenar y nombra la fila y la columna.
+
+El modelo publicado no está calibrado, porque no hay experimentos reales para estos datos. El demo de Robyn trae experimentos de ejemplo, pero sus montos no coinciden con el dataset. Por ejemplo, el experimento de Facebook indica $ 421.000 de inversión en semanas donde el dataset registra $ 14.049. Calibrar con esos valores empeoraría el modelo.
+
 ## Cómo ejecutar el proyecto
 
 Necesitás `uv` y Node 24. Desde la carpeta del repositorio, instalá las dependencias:
@@ -112,6 +155,14 @@ uv run pytest
 node --test "site/js/*.test.js"
 ```
 
+Entrená Meridian y exportá su comparación. Meridian corre en su propio entorno, porque pide otra versión de ArviZ. Necesita Python 3.13 o anterior:
+
+```bash
+uv run --script scripts/run_meridian.py
+```
+
+Después, ejecutá de nuevo `uv run mmm export` para generar el gráfico de comparación del README.
+
 Abrí la página en `http://localhost:8000`:
 
 ```bash
@@ -127,14 +178,9 @@ src/mmm/      carga de datos, modelo, controles de calidad, exportación y gráf
 notebooks/    exploración, modelo y resultados
 site/         página estática y simulador en JavaScript
 tests/        tests de Python y casos compartidos con JavaScript
+scripts/      comparación con Meridian y captura del simulador
 data/raw/     dataset de demo de Robyn
 ```
-
-## Próximos pasos
-
-1. Comparar los resultados con Meridian, el MMM de Google.
-2. Calibrar el modelo con experimentos de incrementalidad (lift tests).
-3. Sumar al simulador el efecto que queda de las semanas anteriores y usar el optimizador de presupuesto de PyMC-Marketing, que tiene en cuenta ese efecto.
 
 ## Fuente de los datos y licencia
 

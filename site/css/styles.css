@@ -18,6 +18,8 @@
   --facebook_S: #eda100;
   --search_S: #e87ba4;
   --accent: #2a78d6;
+  --model-1: #2a78d6;
+  --model-2: #eb6834;
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -40,6 +42,8 @@
     --facebook_S: #c98500;
     --search_S: #d55181;
     --accent: #3987e5;
+    --model-1: #3987e5;
+    --model-2: #d95926;
   }
 }
 
@@ -61,6 +65,8 @@
   --facebook_S: #c98500;
   --search_S: #d55181;
   --accent: #3987e5;
+  --model-1: #3987e5;
+  --model-2: #d95926;
 }
 
 * {

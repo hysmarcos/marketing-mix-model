@@ -13,6 +13,7 @@ from mmm.calibration import CalibrationError, load_lift_tests
 from mmm.data import load_raw, prepare_features
 from mmm.diagnostics import Diagnostics, ModelQualityError, assert_quality, compute_diagnostics
 from mmm.export import build_results, write_results, write_simulator_cases
+from mmm.meridian_compare import MERIDIAN_PATH
 from mmm.model import TARGET, build_mmm, fit_mmm, predict_holdout, split_train_test
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -77,7 +78,10 @@ def export(_: argparse.Namespace) -> int:
     results = build_results(mmm, mmm.idata, df, train, holdout, diagnostics)
     write_results(results, RESULTS_PATH)
     write_simulator_cases(results, CASES_PATH)
-    plots.write_readme_images(results, IMAGES_DIR)
+    meridian = None
+    if MERIDIAN_PATH.exists():
+        meridian = json.loads(MERIDIAN_PATH.read_text(encoding="utf-8"))
+    plots.write_readme_images(results, IMAGES_DIR, meridian=meridian)
     print(f"Resultados en {RESULTS_PATH}")
     print(f"Mejora con el reparto óptimo: {results['headline']['media_uplift_pct']:.1f}%")
     return 0
