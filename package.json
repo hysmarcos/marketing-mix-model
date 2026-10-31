@@ -4,5 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test site/js/*.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1"
   }
 }

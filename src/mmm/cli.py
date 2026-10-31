@@ -8,6 +8,7 @@ from pathlib import Path
 import xarray as xr
 from pymc_marketing.mmm import MMM
 
+from mmm import plots
 from mmm.data import CHANNELS, load_raw, prepare_features
 from mmm.diagnostics import Diagnostics, ModelQualityError, assert_quality, compute_diagnostics
 from mmm.export import HORIZON_WEEKS, build_results, write_results, write_simulator_cases
@@ -21,6 +22,7 @@ HOLDOUT_PATH = ARTIFACTS / "holdout.nc"
 DIAGNOSTICS_PATH = ARTIFACTS / "diagnostics.json"
 RESULTS_PATH = ROOT / "site" / "data" / "resultados.json"
 CASES_PATH = ROOT / "tests" / "fixtures" / "simulator_cases.json"
+IMAGES_DIR = ROOT / "docs" / "img"
 
 
 def fit(args: argparse.Namespace) -> int:
@@ -65,6 +67,7 @@ def export(_: argparse.Namespace) -> int:
     results = build_results(mmm, mmm.idata, df, train, holdout, diagnostics, optimal)
     write_results(results, RESULTS_PATH)
     write_simulator_cases(results, CASES_PATH)
+    plots.write_readme_images(results, IMAGES_DIR)
     print(f"Resultados en {RESULTS_PATH}")
     print(f"Mejora con el reparto óptimo: {results['headline']['media_uplift_pct']:.1f}%")
     return 0

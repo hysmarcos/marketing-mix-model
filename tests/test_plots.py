@@ -29,3 +29,9 @@ def test_data_plots_return_figures():
     assert isinstance(plots.plot_revenue(df), Figure)
     assert isinstance(plots.plot_spend(df), Figure)
     assert set(CHANNELS) <= set(plots.PALETTE)
+
+
+def test_write_readme_images(fake_results, tmp_path):
+    plots.write_readme_images(fake_results, tmp_path)
+    assert (tmp_path / "roi.png").stat().st_size > 0
+    assert (tmp_path / "aportes.png").stat().st_size > 0

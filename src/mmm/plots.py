@@ -190,3 +190,11 @@ def plot_saturation(results: dict) -> Figure:
     fig.suptitle("Curvas de saturación (ventas por semana)", x=0.01, ha="left", fontweight="bold")
     fig.tight_layout()
     return fig
+
+
+def write_readme_images(results: dict, out_dir: Path) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name, make in (("roi.png", plot_roi), ("aportes.png", plot_contributions)):
+        fig = make(results)
+        fig.savefig(out_dir / name, dpi=160)
+        plt.close(fig)
